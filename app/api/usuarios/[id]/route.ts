@@ -5,7 +5,10 @@ import bcrypt from 'bcryptjs';
 
 // const prisma = new PrismaClient(); // REMOVIDO
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(
+    request: Request,
+    { params }: { params: Promise<{ id: string }> }
+) {
     try {
         const { id } = await params;
         const data = await request.json();
@@ -81,7 +84,10 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     }
 }
 
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(
+    request: Request,
+    { params }: { params: Promise<{ id: string }> }
+) {
     try {
         const { id } = await params;
 
