@@ -39,3 +39,23 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# database
+/prisma/dev.db
+/prisma/dev.db-journal
+
+# logs
+*.log
+automation_debug.log
+
+# local tools/archives
+.antigravity/
+.agent/
+.gemini/
+*.zip
+debug_db.js
+cleanup_*.js
+migrate-*.js
+ler-log*.js
+*.tmp
+.wwebjs_auth/

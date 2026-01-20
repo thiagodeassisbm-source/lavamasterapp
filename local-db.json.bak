@@ -1,0 +1,265 @@
+{
+  "clientes": [
+    {
+      "nome": "Lais",
+      "cpf": "121.121.211-12",
+      "telefone": "(62) 98787-8412",
+      "email": "lais@gmail.com",
+      "endereco": "Rua C25",
+      "cidade": "Goiânia",
+      "estado": "GO",
+      "cep": "74265-150",
+      "dataNascimento": "1987-02-15T00:00:00.000Z",
+      "observacoes": "",
+      "id": "3d5bc5f0-6b50-461a-81de-aa196f14da5f",
+      "createdAt": "2026-01-17T15:19:30.520Z",
+      "updatedAt": "2026-01-17T15:19:30.520Z",
+      "veiculos": []
+    },
+    {
+      "nome": "Jonas Ferraz",
+      "cpf": "629.895.656-56",
+      "telefone": "(62) 98956-5656",
+      "email": "denis@gmail.com",
+      "endereco": "Rua C25",
+      "cidade": "Goiânia",
+      "estado": "GO",
+      "cep": "74265-150",
+      "dataNascimento": "1987-02-10T00:00:00.000Z",
+      "observacoes": "",
+      "id": "8f3d41b2-0e7f-4fdf-a7e0-8698c9b2453d",
+      "createdAt": "2026-01-17T15:37:26.626Z",
+      "updatedAt": "2026-01-17T15:37:26.626Z",
+      "veiculos": [
+        {
+          "marca": "Ford",
+          "modelo": "Focus",
+          "cor": "Preto",
+          "ano": 2014,
+          "placa": "Abc-1014",
+          "id": "c52741a7-7271-44fb-9f3f-2f9524b9a74a"
+        }
+      ]
+    },
+    {
+      "nome": "Larissa Carvalho",
+      "cpf": "989.565.656-56",
+      "telefone": "(62) 98787-1212",
+      "email": "Lais@gmail.com",
+      "endereco": "Rua C25",
+      "cidade": "Goiânia",
+      "estado": "GO",
+      "cep": "74265-150",
+      "dataNascimento": "1987-02-15",
+      "observacoes": "",
+      "id": "3e34b731-e813-4b9c-b1ae-42e45128605b",
+      "createdAt": "2026-01-17T15:41:15.449Z",
+      "updatedAt": "2026-01-17T20:09:50.839Z",
+      "veiculos": [
+        {
+          "marca": "Renault",
+          "modelo": "Clio",
+          "cor": "Azul ",
+          "ano": "2017",
+          "placa": "YAB-1012"
+        }
+      ]
+    },
+    {
+      "nome": "Adda Emily",
+      "cpf": "454.875.454-54",
+      "telefone": "(62) 98298-7878",
+      "email": "adda@gmail.com",
+      "endereco": "Rua C25",
+      "cidade": "Goiânia",
+      "estado": "GO",
+      "cep": "74265-150",
+      "dataNascimento": "1877-05-12T00:00:00.000Z",
+      "observacoes": "",
+      "id": "e7cb73a9-3d5a-4009-b463-7d96cc674179",
+      "createdAt": "2026-01-17T15:47:12.171Z",
+      "updatedAt": "2026-01-17T15:47:12.171Z",
+      "veiculos": [
+        {
+          "marca": "Fiat",
+          "modelo": "Uno",
+          "cor": "Preto",
+          "ano": 2014,
+          "placa": "atc-1011",
+          "id": "3acc0032-0db8-4123-bef6-f927b830052f"
+        }
+      ]
+    },
+    {
+      "nome": "Ze Gabriel ",
+      "cpf": "011.554.041-57",
+      "telefone": "(62) 98563-4588",
+      "email": "thanialvarenga@hotmail.com",
+      "endereco": "Avenida Engenheiro Eurico Viana",
+      "cidade": "Goiânia",
+      "estado": "GO",
+      "cep": "74815-465",
+      "dataNascimento": "2026-01-15T00:00:00.000Z",
+      "observacoes": "",
+      "id": "f3ade529-ecce-4ea3-a1bf-e11cfa804aa9",
+      "createdAt": "2026-01-17T17:42:40.855Z",
+      "updatedAt": "2026-01-17T17:42:40.855Z",
+      "veiculos": [
+        {
+          "marca": "Fiat",
+          "modelo": "Marea",
+          "cor": "Azul ",
+          "ano": 2025,
+          "placa": "kbd-1020",
+          "id": "a7cb4720-b598-4f43-b9a4-291f57e20288"
+        }
+      ]
+    },
+    {
+      "nome": "Carol",
+      "cpf": "011.554.041-57",
+      "telefone": "(62) 98777-8787",
+      "email": "publicuni2@gmail.com",
+      "endereco": "Rua C25",
+      "cidade": "Goiânia",
+      "estado": "GO",
+      "cep": "74265-150",
+      "dataNascimento": "1978-10-02T00:00:00.000Z",
+      "observacoes": "",
+      "id": "3743f460-650f-4d7b-ae7b-039d5595034a",
+      "createdAt": "2026-01-17T17:52:54.471Z",
+      "updatedAt": "2026-01-17T17:52:54.471Z",
+      "veiculos": [
+        {
+          "marca": "Chevrolet",
+          "modelo": "Fusca",
+          "cor": "Prata",
+          "ano": 2025,
+          "placa": "JKD-1011",
+          "id": "d4cd1c00-4bba-4283-8065-876bae53d442"
+        }
+      ]
+    }
+  ],
+  "orcamentos": [
+    {
+      "cliente": "Carol",
+      "clienteId": "3743f460-650f-4d7b-ae7b-039d5595034a",
+      "veiculo": "Fusca 2022",
+      "itens": [
+        {
+          "servicoId": "3",
+          "nome": "Cristalização",
+          "quantidade": 1,
+          "precoUnitario": 350,
+          "total": 350
+        }
+      ],
+      "desconto": 0,
+      "observacoes": "",
+      "valor": 350,
+      "status": "pendente",
+      "data": "2026-01-17",
+      "validade": "2026-01-24",
+      "id": "006e6e73-9f8b-4fec-be6f-149ccef7b810",
+      "createdAt": "2026-01-17T17:51:59.348Z",
+      "updatedAt": "2026-01-17T17:51:59.348Z"
+    }
+  ],
+  "estoque": [
+    {
+      "nome": "Cera Carnauba",
+      "descricao": "",
+      "preco": 50,
+      "estoque": 10,
+      "estoqueMin": 1,
+      "id": "a986be28-a2b4-4888-9355-2d49e50c4782",
+      "createdAt": "2026-01-17T18:05:41.347Z",
+      "updatedAt": "2026-01-17T18:06:04.886Z"
+    }
+  ],
+  "servicos": [
+    {
+      "nome": "Lavagem Completa",
+      "descricao": "",
+      "preco": 550,
+      "duracao": 180,
+      "categoria": "Lavagem",
+      "id": "aff475dc-9086-4b1e-9c5c-9febc3ffbadc",
+      "createdAt": "2026-01-17T18:16:51.584Z",
+      "updatedAt": "2026-01-17T18:16:51.584Z"
+    }
+  ],
+  "atendimentos": [
+    {
+      "id": "d14d33bd-2f5a-438f-abc9-1c0727888c75",
+      "clienteId": "8f3d41b2-0e7f-4fdf-a7e0-8698c9b2453d",
+      "clienteNome": "Jonas Ferraz",
+      "veiculo": "Focus - Abc-1014",
+      "servicos": [
+        "Lavagem Completa"
+      ],
+      "valorTotal": 550,
+      "desconto": 0,
+      "formaPagamento": "pix",
+      "status": "em_andamento",
+      "dataHora": "2026-01-17T16:20",
+      "createdAt": "2026-01-17T19:08:45.395Z",
+      "updatedAt": "2026-01-17T19:19:21.638Z"
+    },
+    {
+      "id": "7b7c1209-70bb-45e5-8833-8815b393561f",
+      "clienteId": "f3ade529-ecce-4ea3-a1bf-e11cfa804aa9",
+      "clienteNome": "Ze Gabriel ",
+      "veiculo": "Marea - kbd-1020",
+      "servicos": [
+        "Lavagem Completa"
+      ],
+      "valorTotal": 550,
+      "desconto": 0,
+      "formaPagamento": "pix",
+      "status": "em_andamento",
+      "dataHora": "2026-01-17T16:08",
+      "createdAt": "2026-01-17T19:09:05.228Z",
+      "updatedAt": "2026-01-17T19:09:05.228Z"
+    },
+    {
+      "id": "9fd3292a-9aa6-455d-81a1-6a3c0dc09b3c",
+      "clienteId": "3743f460-650f-4d7b-ae7b-039d5595034a",
+      "clienteNome": "Carol",
+      "veiculo": "Fusca - JKD-1011",
+      "servicos": [
+        "Lavagem Completa"
+      ],
+      "valorTotal": 550,
+      "desconto": 0,
+      "formaPagamento": "pix",
+      "status": "concluido",
+      "dataHora": "2026-01-17T16:10",
+      "createdAt": "2026-01-17T19:11:17.713Z",
+      "updatedAt": "2026-01-17T19:11:30.283Z"
+    }
+  ],
+  "despesas": [
+    {
+      "id": "cd62589c-e8bc-4ea2-bd44-66f20e5a9d72",
+      "descricao": "Aluguel",
+      "valor": 1500,
+      "categoria": "Aluguel",
+      "data": "2026-01-17",
+      "formaPagamento": "pix",
+      "createdAt": "2026-01-17T19:39:31.156Z",
+      "updatedAt": "2026-01-17T19:39:31.156Z"
+    },
+    {
+      "id": "52f5aba4-0b66-45de-a979-55cb6743b1f6",
+      "descricao": "Água",
+      "valor": 150,
+      "categoria": "Energia/Água/Internet",
+      "data": "2026-01-17",
+      "formaPagamento": "pix",
+      "createdAt": "2026-01-17T19:39:53.893Z",
+      "updatedAt": "2026-01-17T19:39:53.893Z"
+    }
+  ]
+}

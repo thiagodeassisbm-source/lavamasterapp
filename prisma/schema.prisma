@@ -1,0 +1,364 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// MULTI-TENANT MODELS
+// ============================================
+
+model Empresa {
+  id            String   @id @default(uuid())
+  nome          String
+  cnpj          String   @unique
+  email         String
+  telefone      String?
+  endereco      String?
+  cidade        String?
+  estado        String?
+  cep           String?
+  logo          String?
+  ativo         Boolean  @default(true)
+  plano         String   @default("basico") // basico, premium, enterprise
+  dataExpiracao DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relações
+  usuarios      Usuario[]
+  clientes      Cliente[]
+  agendamentos  Agendamento[]
+  servicos      Servico[]
+  produtos      Produto[]
+  vendas        Venda[]
+  despesas      Despesa[]
+  receitas      Receita[]
+  estoque       MovimentacaoEstoque[]
+  orcamentos    Orcamento[]
+
+  mensagemConfirmacaoAgendamento String?
+  
+  @@map("empresas")
+}
+
+model Usuario {
+  id        String   @id @default(uuid())
+  empresaId String
+  nome      String
+  email     String
+  senha     String
+  role      String   @default("usuario") // admin, gerente, usuario
+  ativo     Boolean  @default(true)
+  avatar    String?
+  telefone  String?
+  bio       String?
+  failedLoginAttempts Int      @default(0) // Segurança: tentativas falhas
+  lockoutUntil        DateTime?             // Segurança: bloqueio temporario
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relações
+  empresa       Empresa        @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  agendamentos  Agendamento[]
+  vendas        Venda[]
+
+  @@unique([empresaId, email])
+  @@map("usuarios")
+}
+
+// ============================================
+// CLIENTES
+// ============================================
+
+model Cliente {
+  id        String   @id @default(uuid())
+  empresaId String
+  nome      String
+  cpf       String?
+  telefone  String
+  email     String?
+  endereco  String?
+  cidade    String?
+  estado    String?
+  cep       String?
+  dataNascimento DateTime?
+  observacoes    String?
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relações
+  empresa       Empresa        @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  agendamentos  Agendamento[]
+  vendas        Venda[]
+  orcamentos    Orcamento[]
+  veiculos      Veiculo[]
+
+  @@unique([empresaId, cpf])
+  @@map("clientes")
+}
+
+model Veiculo {
+  id        String   @id @default(uuid())
+  clienteId String
+  marca     String
+  modelo    String
+  ano       Int?
+  placa     String?
+  cor       String?
+  observacoes String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relações
+  cliente      Cliente       @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  agendamentos Agendamento[]
+
+  @@map("veiculos")
+}
+
+// ============================================
+// AGENDAMENTOS
+// ============================================
+
+model Agendamento {
+  id          String   @id @default(uuid())
+  empresaId   String
+  clienteId   String
+  veiculoId   String?
+  usuarioId   String?
+  dataHora    DateTime
+  status      String   @default("agendado") // agendado, confirmado, em_andamento, concluido, cancelado
+  observacoes String?
+  valorTotal  Float    @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relações
+  empresa   Empresa            @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  cliente   Cliente            @relation(fields: [clienteId], references: [id])
+  veiculo   Veiculo?           @relation(fields: [veiculoId], references: [id])
+  usuario   Usuario?           @relation(fields: [usuarioId], references: [id])
+  servicos  AgendamentoServico[]
+
+  @@map("agendamentos")
+}
+
+model AgendamentoServico {
+  id            String   @id @default(uuid())
+  agendamentoId String
+  servicoId     String
+  quantidade    Int      @default(1)
+  valorUnitario Float
+  valorTotal    Float
+  createdAt     DateTime @default(now())
+
+  // Relações
+  agendamento Agendamento @relation(fields: [agendamentoId], references: [id], onDelete: Cascade)
+  servico     Servico     @relation(fields: [servicoId], references: [id])
+
+  @@map("agendamentos_servicos")
+}
+
+// ============================================
+// SERVIÇOS E PRODUTOS
+// ============================================
+
+model Servico {
+  id          String   @id @default(uuid())
+  empresaId   String
+  nome        String
+  descricao   String?
+  preco       Float
+  duracao     Int?     // em minutos
+  ativo       Boolean  @default(true)
+  categoria   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relações
+  empresa              Empresa              @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  agendamentos         AgendamentoServico[]
+  itensVenda           ItemVenda[]
+  itensOrcamento       ItemOrcamento[]
+
+  @@map("servicos")
+}
+
+model Produto {
+  id          String   @id @default(uuid())
+  empresaId   String
+  nome        String
+  descricao   String?
+  codigo      String?
+  preco       Float
+  custo       Float    @default(0)
+  estoque     Int      @default(0)
+  estoqueMin  Int      @default(0)
+  unidade     String   @default("UN") // UN, KG, L, M, etc
+  categoria   String?
+  ativo       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relações
+  empresa         Empresa               @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  movimentacoes   MovimentacaoEstoque[]
+  itensVenda      ItemVenda[]
+  itensOrcamento  ItemOrcamento[]
+
+  @@unique([empresaId, codigo])
+  @@map("produtos")
+}
+
+model MovimentacaoEstoque {
+  id         String   @id @default(uuid())
+  empresaId  String
+  produtoId  String
+  tipo       String   // entrada, saida
+  quantidade Int
+  motivo     String?
+  createdAt  DateTime @default(now())
+
+  // Relações
+  empresa Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  produto Produto @relation(fields: [produtoId], references: [id])
+
+  @@map("movimentacoes_estoque")
+}
+
+// ============================================
+// VENDAS E ORÇAMENTOS
+// ============================================
+
+model Venda {
+  id            String   @id @default(uuid())
+  empresaId     String
+  clienteId     String
+  usuarioId     String?
+  dataVenda     DateTime @default(now())
+  valorTotal    Float
+  desconto      Float    @default(0)
+  valorFinal    Float
+  formaPagamento String
+  status        String   @default("pago") // pago, pendente, cancelado
+  observacoes   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relações
+  empresa Empresa     @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  cliente Cliente     @relation(fields: [clienteId], references: [id])
+  usuario Usuario?    @relation(fields: [usuarioId], references: [id])
+  itens   ItemVenda[]
+
+  @@map("vendas")
+}
+
+model ItemVenda {
+  id            String   @id @default(uuid())
+  vendaId       String
+  produtoId     String?
+  servicoId     String?
+  descricao     String
+  quantidade    Int
+  valorUnitario Float
+  valorTotal    Float
+  createdAt     DateTime @default(now())
+
+  // Relações
+  venda   Venda    @relation(fields: [vendaId], references: [id], onDelete: Cascade)
+  produto Produto? @relation(fields: [produtoId], references: [id])
+  servico Servico? @relation(fields: [servicoId], references: [id])
+
+  @@map("itens_venda")
+}
+
+model Orcamento {
+  id          String   @id @default(uuid())
+  empresaId   String
+  clienteId   String
+  dataOrcamento DateTime @default(now())
+  validade    DateTime
+  valorTotal  Float
+  desconto    Float    @default(0)
+  valorFinal  Float
+  status      String   @default("pendente") // pendente, aprovado, rejeitado, expirado
+  observacoes String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relações
+  empresa Empresa         @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  cliente Cliente         @relation(fields: [clienteId], references: [id])
+  itens   ItemOrcamento[]
+
+  @@map("orcamentos")
+}
+
+model ItemOrcamento {
+  id            String   @id @default(uuid())
+  orcamentoId   String
+  produtoId     String?
+  servicoId     String?
+  descricao     String
+  quantidade    Int
+  valorUnitario Float
+  valorTotal    Float
+  createdAt     DateTime @default(now())
+
+  // Relações
+  orcamento Orcamento @relation(fields: [orcamentoId], references: [id], onDelete: Cascade)
+  produto   Produto?  @relation(fields: [produtoId], references: [id])
+  servico   Servico?  @relation(fields: [servicoId], references: [id])
+
+  @@map("itens_orcamento")
+}
+
+// ============================================
+// FINANCEIRO
+// ============================================
+
+model Despesa {
+  id          String   @id @default(uuid())
+  empresaId   String
+  descricao   String
+  valor       Float
+  categoria   String
+  dataVencimento DateTime
+  dataPagamento  DateTime?
+  status      String   @default("pendente") // pendente, pago, vencido
+  observacoes String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relações
+  empresa Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  @@map("despesas")
+}
+
+model Receita {
+  id          String   @id @default(uuid())
+  empresaId   String
+  descricao   String
+  valor       Float
+  categoria   String
+  dataRecebimento DateTime
+  status      String   @default("recebido")
+  observacoes String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relações
+  empresa Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  @@map("receitas")
+}
