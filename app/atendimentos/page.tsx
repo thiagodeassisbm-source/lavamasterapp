@@ -98,7 +98,7 @@ export default function AtendimentosPage() {
             });
 
             if (res.ok) {
-                showToast('Cancelado', 'Atendimento cancelado.', 'info');
+                showToast('Cancelado', 'Atendimento cancelado.', 'warning');
                 fetchAtendimentos();
             }
         } catch (error) {
