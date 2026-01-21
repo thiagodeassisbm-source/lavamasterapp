@@ -1,29 +1,36 @@
-import { NextResponse } from 'next/server';
-import fs from 'fs/promises';
-import path from 'path';
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { getAuthContext } from '@/lib/auth';
 
-const DB_FILE = path.join(process.cwd(), 'local-db.json');
-
-// Helper para ler o DB local
-async function readLocalDb() {
+export async function GET(request: NextRequest) {
     try {
-        const data = await fs.readFile(DB_FILE, 'utf-8');
-        return JSON.parse(data);
-    } catch {
-        return { clientes: [], atendimentos: [] };
-    }
-}
+        const ctx = await getAuthContext();
+        if (!ctx) {
+            return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+        }
 
-// Helper para escrever no DB local
-async function writeLocalDb(data: any) {
-    await fs.writeFile(DB_FILE, JSON.stringify(data, null, 2));
-}
+        // Retorna agendamentos filtrados por empresa
+        const atendimentos = await prisma.agendamento.findMany({
+            where: { empresaId: ctx.empresaId },
+            include: {
+                cliente: true,
+                servicos: {
+                    include: { servico: true }
+                }
+            },
+            orderBy: { createdAt: 'desc' }
+        });
 
-export async function GET() {
-    try {
-        const db = await readLocalDb();
-        return NextResponse.json(db.atendimentos || []);
+        // Formata para manter compatibilidade com front
+        const formatted = atendimentos.map(a => ({
+            ...a,
+            clienteNome: a.cliente?.nome,
+            valorTotal: Number(a.valorTotal)
+        }));
+
+        return NextResponse.json(formatted);
     } catch (error) {
+        console.error('Erro ao buscar atendimentos:', error);
         return NextResponse.json(
             { error: 'Erro ao buscar atendimentos' },
             { status: 500 }
@@ -31,26 +38,30 @@ export async function GET() {
     }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
     try {
+        const ctx = await getAuthContext();
+        if (!ctx) {
+            return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+        }
+
         const body = await request.json();
-        const db = await readLocalDb();
 
-        const novoAtendimento = {
-            id: crypto.randomUUID(),
-            ...body,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            status: body.status || 'em_andamento'
-        };
-
-        if (!db.atendimentos) db.atendimentos = [];
-        db.atendimentos.push(novoAtendimento);
-
-        await writeLocalDb(db);
+        const novoAtendimento = await prisma.agendamento.create({
+            data: {
+                empresaId: ctx.empresaId,
+                clienteId: body.clienteId,
+                veiculoId: body.veiculoId,
+                dataHora: body.dataHora ? new Date(body.dataHora) : new Date(),
+                status: body.status || 'em_andamento',
+                observacoes: body.observacoes,
+                valorTotal: parseFloat(body.valorTotal) || 0
+            },
+            include: { cliente: true }
+        });
 
         return NextResponse.json(novoAtendimento);
-    } catch (error) {
+    } catch (error: any) {
         console.error('Erro ao salvar atendimento:', error);
         return NextResponse.json(
             { error: 'Erro ao salvar atendimento' },
@@ -59,8 +70,13 @@ export async function POST(request: Request) {
     }
 }
 
-export async function PUT(request: Request) {
+export async function PUT(request: NextRequest) {
     try {
+        const ctx = await getAuthContext();
+        if (!ctx) {
+            return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+        }
+
         const body = await request.json();
         const { id, ...updates } = body;
 
@@ -68,24 +84,26 @@ export async function PUT(request: Request) {
             return NextResponse.json({ error: 'ID obrigatório' }, { status: 400 });
         }
 
-        const db = await readLocalDb();
-        if (!db.atendimentos) db.atendimentos = [];
+        // Verifica se o atendimento pertence à empresa do usuário
+        const atendimentoExistente = await prisma.agendamento.findUnique({
+            where: { id }
+        });
 
-        const index = db.atendimentos.findIndex((a: any) => a.id === id);
-
-        if (index === -1) {
-            return NextResponse.json({ error: 'Atendimento não encontrado' }, { status: 404 });
+        if (!atendimentoExistente || atendimentoExistente.empresaId !== ctx.empresaId) {
+            return NextResponse.json({ error: 'Atendimento não encontrado ou acesso negado' }, { status: 404 });
         }
 
-        db.atendimentos[index] = {
-            ...db.atendimentos[index],
-            ...updates,
-            updatedAt: new Date()
-        };
+        const atendimentoAtualizado = await prisma.agendamento.update({
+            where: { id },
+            data: {
+                status: updates.status,
+                observacoes: updates.observacoes,
+                valorTotal: updates.valorTotal !== undefined ? parseFloat(updates.valorTotal) : undefined,
+                dataHora: updates.dataHora ? new Date(updates.dataHora) : undefined
+            }
+        });
 
-        await writeLocalDb(db);
-
-        return NextResponse.json(db.atendimentos[index]);
+        return NextResponse.json(atendimentoAtualizado);
     } catch (error) {
         console.error('Erro ao atualizar atendimento:', error);
         return NextResponse.json(

@@ -1,35 +1,16 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { cookies } from 'next/headers';
-import jwt from 'jsonwebtoken';
+import { getAuthContext } from '@/lib/auth';
 
-// Helper de Auth
-async function getContext() {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('auth-token')?.value;
-    if (!token) return null;
+export async function GET(request: NextRequest) {
     try {
-        const decoded: any = jwt.verify(token, process.env.JWT_SECRET || 'dev-secret-key-123');
-        return { userId: decoded.sub, empresaId: decoded.empresaId };
-    } catch {
-        return null;
-    }
-}
-
-export async function GET(request: Request) {
-    try {
-        const ctx = await getContext();
+        const ctx = await getAuthContext();
         if (!ctx) {
-            // Se não autenticado, fallback (temporario) ou erro.
-            // Para manter compatibilidade com front atual que talvez não mande cookie em fetch server side:
-            // Tenta pegar da primeira empresa
-            // return NextResponse.json([], { status: 401 }); 
+            return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
         }
 
-        const where = ctx ? { empresaId: ctx.empresaId } : {};
-
         const clientes = await prisma.cliente.findMany({
-            where,
+            where: { empresaId: ctx.empresaId },
             include: { veiculos: true },
             orderBy: { createdAt: 'desc' }
         });
@@ -44,28 +25,38 @@ export async function GET(request: Request) {
     }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
     try {
-        const data = await request.json();
-        const ctx = await getContext();
-
-        // Fallback de empresa se não tiver contexto
-        let targetEmpresaId = ctx?.empresaId;
-        if (!targetEmpresaId) {
-            const emp = await prisma.empresa.findFirst();
-            targetEmpresaId = emp?.id;
+        const ctx = await getAuthContext();
+        if (!ctx) {
+            return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
         }
 
-        if (!targetEmpresaId) {
-            return NextResponse.json({ error: 'Empresa não identificada' }, { status: 400 });
+        const data = await request.json();
+
+        // VERIFICAÇÃO DE LIMITE DE CLIENTES
+        const empresa = await prisma.empresa.findUnique({
+            where: { id: ctx.empresaId },
+            include: {
+                _count: {
+                    select: { clientes: true }
+                }
+            }
+        });
+
+        if (empresa && empresa.limiteClientes > 0 && empresa._count.clientes >= empresa.limiteClientes) {
+            return NextResponse.json(
+                { error: `Limite de clientes atingido. Seu plano permite apenas ${empresa.limiteClientes} clientes.` },
+                { status: 403 }
+            );
         }
 
         const { veiculos, ...clienteData } = data;
 
-        // Cria Cliente + Veiculos
+        // Cria Cliente + Veiculos garantindo o empresaId do usuário logado
         const novoCliente = await prisma.cliente.create({
             data: {
-                empresaId: targetEmpresaId,
+                empresaId: ctx.empresaId,
                 nome: clienteData.nome,
                 telefone: clienteData.telefone,
                 cpf: clienteData.cpf,

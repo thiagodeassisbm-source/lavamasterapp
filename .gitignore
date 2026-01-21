@@ -43,19 +43,46 @@ next-env.d.ts
 # database
 /prisma/dev.db
 /prisma/dev.db-journal
+dev.db
+dev.db-journal
+*.db
+*.db-journal
+local-db.json*
 
 # logs
 *.log
 automation_debug.log
+webhook_debug.log
+tunnel.log
+serveo*.log
+final_serveo.log
 
 # local tools/archives
 .antigravity/
 .agent/
 .gemini/
 *.zip
-debug_db.js
+*.tmp
+.wwebjs_auth/
+
+# debug scripts and temp files
+check-*.js
 cleanup_*.js
 migrate-*.js
 ler-log*.js
-*.tmp
-.wwebjs_auth/
+debug-*.js
+test-*.js
+test.prisma
+list-users.js
+pegar-link.js
+disparar-zap.js
+whatsapp-bot.js
+start-tunnel.js
+get-ngrok-url.js
+check_stats.js
+dump-log.js
+ultimos_requests.json
+url*.txt
+lt-url.txt
+verificar-empresa.js
+update-empresa-email.js

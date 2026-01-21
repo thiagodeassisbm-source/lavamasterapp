@@ -1,32 +1,22 @@
-import { NextResponse } from 'next/server';
-import fs from 'fs/promises';
-import path from 'path';
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { getAuthContext } from '@/lib/auth';
 
-const DB_FILE = path.join(process.cwd(), 'local-db.json');
-
-// Helper para ler o DB local
-async function readLocalDb() {
+export async function GET(request: NextRequest) {
     try {
-        const data = await fs.readFile(DB_FILE, 'utf-8');
-        const json = JSON.parse(data);
-        // Garantir que existe a chave despesas
-        if (!json.despesas) json.despesas = [];
-        return json;
-    } catch {
-        return { clientes: [], atendimentos: [], despesas: [] };
-    }
-}
+        const ctx = await getAuthContext();
+        if (!ctx) {
+            return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+        }
 
-// Helper para escrever no DB local
-async function writeLocalDb(data: any) {
-    await fs.writeFile(DB_FILE, JSON.stringify(data, null, 2));
-}
+        const despesas = await prisma.despesa.findMany({
+            where: { empresaId: ctx.empresaId },
+            orderBy: { createdAt: 'desc' }
+        });
 
-export async function GET() {
-    try {
-        const db = await readLocalDb();
-        return NextResponse.json(db.despesas || []);
+        return NextResponse.json(despesas);
     } catch (error) {
+        console.error('Erro ao buscar despesas:', error);
         return NextResponse.json(
             { error: 'Erro ao buscar despesas' },
             { status: 500 }
@@ -34,25 +24,30 @@ export async function GET() {
     }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
     try {
-        const body = await request.json();
-        const db = await readLocalDb();
+        const ctx = await getAuthContext();
+        if (!ctx) {
+            return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+        }
 
-        const novaDespesa = {
-            id: crypto.randomUUID(),
-            ...body,
-            createdAt: new Date(),
-            updatedAt: new Date()
-        };
+        const data = await request.json();
 
-        if (!db.despesas) db.despesas = [];
-        db.despesas.push(novaDespesa);
-
-        await writeLocalDb(db);
+        const novaDespesa = await prisma.despesa.create({
+            data: {
+                empresaId: ctx.empresaId,
+                descricao: data.descricao,
+                valor: parseFloat(data.valor) || 0,
+                categoria: data.categoria || 'Geral',
+                dataVencimento: data.dataVencimento ? new Date(data.dataVencimento) : new Date(),
+                dataPagamento: data.dataPagamento ? new Date(data.dataPagamento) : null,
+                status: data.status || 'pendente',
+                observacoes: data.observacoes
+            }
+        });
 
         return NextResponse.json(novaDespesa);
-    } catch (error) {
+    } catch (error: any) {
         console.error('Erro ao salvar despesa:', error);
         return NextResponse.json(
             { error: 'Erro ao salvar despesa' },

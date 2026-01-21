@@ -14,6 +14,20 @@ datasource db {
 // MULTI-TENANT MODELS
 // ============================================
 
+// Super Admin - Dono do Sistema
+model SuperAdmin {
+  id        String   @id @default(uuid())
+  nome      String
+  email     String   @unique
+  senha     String
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("super_admins")
+}
+
+// Empresa/Cliente do Sistema SaaS
 model Empresa {
   id            String   @id @default(uuid())
   nome          String
@@ -25,13 +39,31 @@ model Empresa {
   estado        String?
   cep           String?
   logo          String?
+  
+  // Controle de Acesso e Plano
   ativo         Boolean  @default(true)
-  plano         String   @default("basico") // basico, premium, enterprise
+  bloqueado     Boolean  @default(false)
+  motivoBloqueio String?
+  plano         String   @default("basico") // Nome display do plano
+  planoId       String?  // Relacionamento oficial
+  valorMensal   Float    @default(0)
+  dataContratacao DateTime @default(now())
   dataExpiracao DateTime?
+  proximoVencimento DateTime?
+  
+  // Limites por Plano
+  limiteUsuarios    Int @default(5)
+  limiteClientes    Int @default(100)
+  limiteAgendamentos Int @default(1000)
+  
+  // Observações internas
+  observacoesInternas String?
+  
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   // Relações
+  planoRel      Plano?   @relation(fields: [planoId], references: [id])
   usuarios      Usuario[]
   clientes      Cliente[]
   agendamentos  Agendamento[]
@@ -361,4 +393,33 @@ model Receita {
   empresa Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
 
   @@map("receitas")
+}
+
+// ============================================
+// PLANOS DE ASSINATURA
+// ============================================
+
+model Plano {
+  id                 String   @id @default(uuid())
+  nome               String
+  descricao          String?
+  preco              Float    @default(0)
+  intervalo          String   // MENSAL, TRIMESTRAL, SEMESTRAL, ANUAL, PERSONALIZADO
+  duracaoDias        Int?     // Usado se intervalo for PERSONALIZADO
+  
+  // Limites
+  limiteUsuarios     Int      @default(1)
+  limiteClientes     Int      @default(100)
+  limiteAgendamentos Int      @default(1000)
+  
+  ativo              Boolean  @default(true)
+  destaque           Boolean  @default(false)
+  ordem              Int      @default(0)
+  
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  
+  empresas           Empresa[]
+
+  @@map("planos")
 }

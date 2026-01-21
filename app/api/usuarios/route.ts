@@ -1,16 +1,17 @@
-
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
+import { getAuthContext } from '@/lib/auth';
 
-// const prisma = new PrismaClient(); // REMOVIDO: Usar instancia global
-
-
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
     try {
-        // Busca usuarios (idealmente filtraria por empresa do usuario logado)
-        // Como estamos num contexto simplificado sem auth context aqui ainda, pegamos da primeira empresa ou todos
+        const ctx = await getAuthContext();
+        if (!ctx) {
+            return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+        }
+
         const usuarios = await prisma.usuario.findMany({
+            where: { empresaId: ctx.empresaId },
             select: {
                 id: true,
                 nome: true,
@@ -18,7 +19,6 @@ export async function GET(request: Request) {
                 role: true,
                 ativo: true,
                 createdAt: true,
-                // Não retornar senha
             },
             orderBy: {
                 createdAt: 'desc'
@@ -36,12 +36,21 @@ export async function GET(request: Request) {
     }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
     try {
-        const data = await request.json();
-        const { nome, email, senha, role, empresaId } = data;
+        const ctx = await getAuthContext();
+        if (!ctx) {
+            return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+        }
 
-        // Validações básicas
+        // Apenas admin pode criar outros usuários na empresa
+        if (ctx.role !== 'admin' && ctx.role !== 'gerente') {
+            return NextResponse.json({ error: 'Acesso negado' }, { status: 403 });
+        }
+
+        const data = await request.json();
+        const { nome, email, senha, role } = data;
+
         if (!nome || !email || !senha) {
             return NextResponse.json(
                 { error: 'Nome, email e senha são obrigatórios' },
@@ -49,56 +58,55 @@ export async function POST(request: Request) {
             );
         }
 
-        // Tenta encontrar uma empresa se não fornecida (para facilitar testes/desenv)
-        let targetEmpresaId = empresaId;
-        if (!targetEmpresaId) {
-            const empresa = await prisma.empresa.findFirst();
-            if (empresa) {
-                targetEmpresaId = empresa.id;
-            } else {
-                // Se não houver empresa, cria uma padrão
-                const novaEmpresa = await prisma.empresa.create({
-                    data: {
-                        nome: "Minha Empresa",
-                        cnpj: "00000000000000", // Dummy
-                        email: "admin@empresa.com"
-                    }
-                });
-                targetEmpresaId = novaEmpresa.id;
-            }
-        }
-
         // Verifica se já existe usuário com este email na empresa
         const existeUsuario = await prisma.usuario.findFirst({
             where: {
                 email,
-                empresaId: targetEmpresaId
+                empresaId: ctx.empresaId
             }
         });
 
         if (existeUsuario) {
             return NextResponse.json(
-                { error: 'Usuário já cadastrado com este email' },
+                { error: 'Usuário já cadastrado com este email nesta empresa' },
                 { status: 400 }
             );
         }
 
-        // Hash da senha
+        // VERIFICAÇÃO DE LIMITE DO PLANO
+        const empresa = await prisma.empresa.findUnique({
+            where: { id: ctx.empresaId },
+            include: {
+                _count: {
+                    select: { usuarios: true }
+                }
+            }
+        });
+
+        if (empresa) {
+            // @ts-ignore
+            if (empresa.limiteUsuarios > 0 && empresa._count.usuarios >= empresa.limiteUsuarios) {
+                return NextResponse.json(
+                    // @ts-ignore
+                    { error: `Limite de usuários atingido. Seu plano permite apenas ${empresa.limiteUsuarios} usuários.` },
+                    { status: 403 }
+                );
+            }
+        }
+
         const hashedPassword = await bcrypt.hash(senha, 10);
 
-        // Cria o usuário
         const usuario = await prisma.usuario.create({
             data: {
                 nome,
                 email,
                 senha: hashedPassword,
                 role: role || 'usuario',
-                empresaId: targetEmpresaId,
+                empresaId: ctx.empresaId,
                 ativo: true
             }
         });
 
-        // Remove a senha do retorno
         const { senha: _, ...usuarioSemSenha } = usuario;
 
         return NextResponse.json(usuarioSemSenha, { status: 201 });

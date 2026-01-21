@@ -1,34 +1,27 @@
-import { NextResponse } from 'next/server';
-import fs from 'fs/promises';
-import path from 'path';
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { getAuthContext } from '@/lib/auth';
 
-const DB_FILE = path.join(process.cwd(), 'local-db.json');
-
-function generateUUID() {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-        var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
-        return v.toString(16);
-    });
-}
-
-async function readLocalDb() {
+export async function GET(request: NextRequest) {
     try {
-        const data = await fs.readFile(DB_FILE, 'utf-8');
-        return JSON.parse(data);
-    } catch {
-        return {};
-    }
-}
+        const ctx = await getAuthContext();
+        if (!ctx) {
+            return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+        }
 
-async function writeLocalDb(data: any) {
-    await fs.writeFile(DB_FILE, JSON.stringify(data, null, 2));
-}
+        const servicos = await prisma.servico.findMany({
+            where: {
+                empresaId: ctx.empresaId,
+                ativo: true
+            },
+            orderBy: {
+                nome: 'asc'
+            }
+        });
 
-export async function GET() {
-    try {
-        const db = await readLocalDb();
-        return NextResponse.json(db.servicos || []);
+        return NextResponse.json(servicos);
     } catch (error) {
+        console.error('Erro ao buscar serviços:', error);
         return NextResponse.json(
             { error: 'Erro ao buscar serviços' },
             { status: 500 }
@@ -36,24 +29,26 @@ export async function GET() {
     }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
     try {
-        const rawBody = await request.text();
-        const data = JSON.parse(rawBody);
+        const ctx = await getAuthContext();
+        if (!ctx) {
+            return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+        }
 
-        const db = await readLocalDb();
+        const data = await request.json();
 
-        const novoServico = {
-            ...data,
-            id: data.id || generateUUID(),
-            createdAt: new Date(),
-            updatedAt: new Date(),
-        };
-
-        if (!db.servicos) db.servicos = [];
-        db.servicos.push(novoServico);
-
-        await writeLocalDb(db);
+        const novoServico = await prisma.servico.create({
+            data: {
+                empresaId: ctx.empresaId,
+                nome: data.nome,
+                descricao: data.descricao,
+                preco: parseFloat(data.preco) || 0,
+                duracao: parseInt(data.duracao) || 30,
+                categoria: data.categoria,
+                ativo: true
+            }
+        });
 
         return NextResponse.json(novoServico);
 

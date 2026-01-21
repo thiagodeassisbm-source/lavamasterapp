@@ -25,7 +25,8 @@ import {
     UserPlus,
     Circle,
     MessageSquare,
-    History as HistoryIcon
+    History as HistoryIcon,
+    Building2
 } from 'lucide-react';
 
 interface MenuItem {
@@ -59,9 +60,9 @@ const menuItems: MenuItem[] = [
         icon: Settings,
         label: 'Configurações',
         subItems: [
-            { icon: Circle, label: 'Geral', href: '/configuracoes' },
-            { icon: Download, label: 'Instalar App', href: '/configuracoes/download' },
-            { icon: UserPlus, label: 'Usuários', href: '/configuracoes/usuarios/novo' }
+            { icon: Building2, label: 'Empresa', href: '/configuracoes/empresa' },
+            { icon: UserPlus, label: 'Usuários', href: '/configuracoes/usuarios/novo' },
+            { icon: Download, label: 'Instalar App', href: '/configuracoes/download' }
         ]
     }
 ];
