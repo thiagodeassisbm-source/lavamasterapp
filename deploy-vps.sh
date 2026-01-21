@@ -42,8 +42,9 @@ echo "📥 Clonando repositório..."
 if [ -d "estetica-automotiva" ]; then
     rm -rf estetica-automotiva
 fi
-git clone https://github.com/thiagodeassisbm/lavamasterapp.git estetica-automotiva
+git clone https://github.com/thiagodeassisbm-source/lavamasterapp.git estetica-automotiva
 cd estetica-automotiva
+git checkout mestre
 
 # 8. Instalar dependências
 echo "📦 Instalando dependências do projeto..."

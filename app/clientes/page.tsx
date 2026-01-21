@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import MobileMenu from '@/lib/presentation/components/MobileMenu';
 import ClienteForm from '@/lib/presentation/components/ClienteForm';
@@ -29,7 +29,7 @@ interface Cliente {
     veiculos?: any[];
 }
 
-export default function ClientesPage() {
+function ClientesPageContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const [showForm, setShowForm] = useState(false);
@@ -492,5 +492,13 @@ export default function ClientesPage() {
                 onClose={() => setToast({ ...toast, isOpen: false })}
             />
         </div>
+    );
+}
+
+export default function ClientesPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen bg-slate-900 flex items-center justify-center text-white">Carregando...</div>}>
+            <ClientesPageContent />
+        </Suspense>
     );
 }

@@ -5,6 +5,8 @@ import PWAInstallPrompt from '@/lib/presentation/components/PWAInstallPrompt';
 
 const inter = Inter({ subsets: ['latin'] });
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: 'Estética Automotiva - Sistema de Gestão',
   description: 'Sistema completo de gestão para estética automotiva com agenda, financeiro, clientes e muito mais',
