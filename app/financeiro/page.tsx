@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useState, useEffect } from 'react';
 import MobileMenu from '@/lib/presentation/components/MobileMenu';
 import { DollarSign, TrendingUp, TrendingDown, Calendar, Plus, Search, Filter, X, Save, Tag, CreditCard } from 'lucide-react';

@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import MobileMenu from '@/lib/presentation/components/MobileMenu';
 import Dashboard from '@/lib/presentation/components/Dashboard';
 
