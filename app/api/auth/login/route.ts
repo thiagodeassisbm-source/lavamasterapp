@@ -11,6 +11,7 @@ export async function POST(request: Request) {
     try {
         const { email, password } = await request.json();
         const sanitizedEmail = email?.trim().toLowerCase();
+        console.log(`[AUTH] Tentativa de login para: ${sanitizedEmail}`);
 
         if (!sanitizedEmail || !password) {
             return NextResponse.json({ error: 'Email e senha são obrigatórios' }, { status: 400 });
