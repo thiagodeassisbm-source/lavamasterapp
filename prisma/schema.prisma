@@ -69,7 +69,7 @@ model Empresa {
 
 model Usuario {
   id        String   @id @default(uuid())
-  empresaId String
+  empresaId String?
   nome      String
   email     String
   senha     String
@@ -84,7 +84,7 @@ model Usuario {
   updatedAt DateTime @updatedAt
 
   // Relações
-  empresa       Empresa        @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  empresa       Empresa?       @relation(fields: [empresaId], references: [id], onDelete: Cascade)
   agendamentos  Agendamento[]
   vendas        Venda[]
 
