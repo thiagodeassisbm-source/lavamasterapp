@@ -48,6 +48,8 @@ dev.db-journal
 *.db
 *.db-journal
 local-db.json*
+database-export.json
+database-export.sql
 
 # logs
 *.log
