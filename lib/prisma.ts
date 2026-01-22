@@ -8,7 +8,9 @@ export const prisma =
         log: ['query'],
         datasources: {
             db: {
-                url: process.env.DATABASE_URL?.replace('aws-0-sa-east-1.pooler.supabase.com', 'db.bkhtemypttswlkluaort.supabase.co'),
+                url: process.env.DATABASE_URL
+                    ? process.env.DATABASE_URL.replace('aws-0-sa-east-1.pooler.supabase.com', 'db.bkhtemypttswlkluaort.supabase.co').replace('aws-1-sa-east-1.pooler.supabase.com', 'db.bkhtemypttswlkluaort.supabase.co')
+                    : "postgres://postgres.bkhtemypttswlkluaort:Z4PKLWQY8J9gF6Kp@db.bkhtemypttswlkluaort.supabase.co:5432/postgres",
             },
         },
     });
