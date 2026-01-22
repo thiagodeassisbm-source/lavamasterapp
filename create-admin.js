@@ -1,25 +1,54 @@
 const { PrismaClient } = require('@prisma/client');
+const bcrypt = require('bcryptjs');
 const prisma = new PrismaClient();
 
 async function main() {
-    console.log('Conectando ao Supabase...');
+    console.log('Conectando ao banco...');
     try {
-        const admin = await prisma.superAdmin.upsert({
-            where: { email: 'thiago.deassisbm@gmail.com' },
-            update: {
-                senha: 'admin123' // Resetando a senha caso já exista
-            },
+        const email = process.env.SUPERADMIN_EMAIL || 'thiago.deassisbm@gmail.com';
+        const password = process.env.SUPERADMIN_PASSWORD || 'admin123';
+        const rootEmpresaId = process.env.SUPERADMIN_EMPRESA_ID || 'superadmin-root';
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        await prisma.empresa.upsert({
+            where: { id: rootEmpresaId },
+            update: {},
             create: {
-                nome: 'Thiago De Assis',
-                email: 'thiago.deassisbm@gmail.com',
-                senha: 'admin123'
+                id: rootEmpresaId,
+                nome: 'Superadmin Root',
+                cnpj: '00000000000000-root',
+                email,
+                plano: 'root',
+                limiteUsuarios: 10,
+                limiteClientes: 1000,
+                limiteAgendamentos: 10000,
+                ativo: true
             }
         });
-        console.log('✅ Usuário Super Admin criado/atualizado com sucesso!');
-        console.log('Email: thiago.deassisbm@gmail.com');
-        console.log('Senha: admin123');
+
+        const admin = await prisma.usuario.upsert({
+            where: { email_empresaId: { email, empresaId: rootEmpresaId } },
+            update: {
+                senha: hashedPassword,
+                ativo: true,
+                role: 'superadmin'
+            },
+            create: {
+                nome: 'Super Admin',
+                email,
+                senha: hashedPassword,
+                ativo: true,
+                role: 'superadmin',
+                empresaId: rootEmpresaId
+            }
+        });
+
+        console.log('Super Admin criado/atualizado com sucesso!');
+        console.log('Email:', admin.email);
+        console.log('Senha:', password);
     } catch (error) {
-        console.error('❌ Erro ao criar usuário:', error);
+        console.error('Erro ao criar usuário:', error);
     } finally {
         await prisma.$disconnect();
     }

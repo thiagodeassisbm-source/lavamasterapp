@@ -1,67 +1,69 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-import bcrypt from 'bcryptjs'
-import jwt from 'jsonwebtoken'
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'lavamaster-secret-2026-production'
+const JWT_SECRET = process.env.JWT_SECRET || 'lavamaster-secret-2026-production';
 
 export async function GET(request: NextRequest) {
     try {
-        const authHeader = request.headers.get('authorization')
-        if (!authHeader) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+        const authHeader = request.headers.get('authorization');
+        if (!authHeader) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
 
-        const token = authHeader.split(' ')[1]
-        const decoded: any = jwt.verify(token, JWT_SECRET)
+        const token = authHeader.split(' ')[1];
+        const decoded: any = jwt.verify(token, JWT_SECRET);
 
-        const superAdmin = await prisma.superAdmin.findUnique({
+        const superAdmin = await prisma.usuario.findUnique({
             where: { id: decoded.id },
             select: {
                 id: true,
                 nome: true,
                 email: true,
-                ativo: true
+                ativo: true,
+                role: true
             }
-        })
+        });
 
-        if (!superAdmin) return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 })
+        if (!superAdmin) return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 });
+        if (superAdmin.role !== 'superadmin') return NextResponse.json({ error: 'Acesso negado' }, { status: 403 });
 
-        return NextResponse.json(superAdmin)
+        return NextResponse.json(superAdmin);
     } catch (error) {
-        return NextResponse.json({ error: 'Token inválido' }, { status: 401 })
+        return NextResponse.json({ error: 'Token inválido' }, { status: 401 });
     }
 }
 
 export async function PUT(request: NextRequest) {
     try {
-        const authHeader = request.headers.get('authorization')
-        if (!authHeader) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+        const authHeader = request.headers.get('authorization');
+        if (!authHeader) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
 
-        const token = authHeader.split(' ')[1]
-        const decoded: any = jwt.verify(token, JWT_SECRET)
+        const token = authHeader.split(' ')[1];
+        const decoded: any = jwt.verify(token, JWT_SECRET);
 
-        const { nome, email, senhaAtual, novaSenha } = await request.json()
+        const { nome, email, senhaAtual, novaSenha } = await request.json();
 
-        const superAdmin = await prisma.superAdmin.findUnique({
+        const superAdmin = await prisma.usuario.findUnique({
             where: { id: decoded.id }
-        })
+        });
 
-        if (!superAdmin) return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 })
+        if (!superAdmin) return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 });
+        if (superAdmin.role !== 'superadmin') return NextResponse.json({ error: 'Acesso negado' }, { status: 403 });
 
-        // Se quiser mudar senha, precisa validar a atual
-        const updateData: any = { nome, email }
+        const updateData: any = { nome, email };
 
         if (novaSenha) {
             if (!senhaAtual) {
-                return NextResponse.json({ error: 'Senha atual é obrigatória para mudar a senha' }, { status: 400 })
+                return NextResponse.json({ error: 'Senha atual é obrigatória para mudar a senha' }, { status: 400 });
             }
-            const senhaValida = await bcrypt.compare(senhaAtual, superAdmin.senha)
+            const senhaValida = await bcrypt.compare(senhaAtual, superAdmin.senha);
             if (!senhaValida) {
-                return NextResponse.json({ error: 'Senha atual incorreta' }, { status: 401 })
+                return NextResponse.json({ error: 'Senha atual incorreta' }, { status: 401 });
             }
-            updateData.senha = await bcrypt.hash(novaSenha, 10)
+            updateData.senha = await bcrypt.hash(novaSenha, 10);
         }
 
-        const updated = await prisma.superAdmin.update({
+        const updated = await prisma.usuario.update({
             where: { id: decoded.id },
             data: updateData,
             select: {
@@ -69,11 +71,11 @@ export async function PUT(request: NextRequest) {
                 nome: true,
                 email: true
             }
-        })
+        });
 
-        return NextResponse.json(updated)
+        return NextResponse.json(updated);
     } catch (error) {
-        console.error('Erro ao atualizar perfil superadmin:', error)
-        return NextResponse.json({ error: 'Erro ao atualizar perfil' }, { status: 500 })
+        console.error('Erro ao atualizar perfil superadmin:', error);
+        return NextResponse.json({ error: 'Erro ao atualizar perfil' }, { status: 500 });
     }
 }

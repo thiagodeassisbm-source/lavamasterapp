@@ -7,11 +7,12 @@ async function exportData() {
     try {
         console.log('📦 Exportando dados do SQLite...\n')
 
+        const usuarios = await prisma.usuario.findMany()
         const data = {
-            superAdmins: await prisma.superAdmin.findMany(),
+            superAdmins: usuarios.filter(u => u.role === 'superadmin'),
             planos: await prisma.plano.findMany(),
             empresas: await prisma.empresa.findMany(),
-            usuarios: await prisma.usuario.findMany(),
+            usuarios,
             clientes: await prisma.cliente.findMany(),
             veiculos: await prisma.veiculo.findMany(),
             servicos: await prisma.servico.findMany(),
@@ -48,15 +49,6 @@ async function exportData() {
 
         // Criar arquivo SQL para importação direta
         let sql = '-- Exportação do banco SQLite para PostgreSQL\n\n'
-
-        // Super Admins
-        if (data.superAdmins.length > 0) {
-            sql += '-- Super Admins\n'
-            for (const admin of data.superAdmins) {
-                sql += `INSERT INTO super_admins (id, nome, email, senha, ativo, "createdAt", "updatedAt") VALUES ('${admin.id}', '${admin.nome.replace(/'/g, "''")}', '${admin.email}', '${admin.senha}', ${admin.ativo}, '${admin.createdAt.toISOString()}', '${admin.updatedAt.toISOString()}') ON CONFLICT (email) DO UPDATE SET senha = EXCLUDED.senha, ativo = EXCLUDED.ativo;\n`
-            }
-            sql += '\n'
-        }
 
         fs.writeFileSync('database-export.sql', sql)
         console.log('✅ SQL gerado em: database-export.sql\n')

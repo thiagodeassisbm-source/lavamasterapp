@@ -14,19 +14,6 @@ datasource db {
 // MULTI-TENANT MODELS
 // ============================================
 
-// Super Admin - Dono do Sistema
-model SuperAdmin {
-  id        String   @id @default(uuid())
-  nome      String
-  email     String   @unique
-  senha     String
-  ativo     Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("super_admins")
-}
-
 // Empresa/Cliente do Sistema SaaS
 model Empresa {
   id            String   @id @default(uuid())

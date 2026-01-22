@@ -4,8 +4,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
 const MAX_ATTEMPTS = 5;
-const LOCKOUT_TIME_MS = 15 * 60 * 1000; 
-// Usando a MESMA chave definida em lib/auth.ts
+const LOCKOUT_TIME_MS = 15 * 60 * 1000;
 const JWT_SECRET = process.env.JWT_SECRET || 'segredo-super-seguro-lava-master-2026';
 
 export async function POST(request: Request) {
@@ -17,55 +16,16 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Email e senha são obrigatórios' }, { status: 400 });
         }
 
-        // --- TENTATIVA 1: LOGIN COMO SUPER ADMIN ---
-        // Verifica primeiro na tabela de SuperAdmin definida no schema.prisma
-        const superAdmin = await prisma.superAdmin.findUnique({
-            where: { email: sanitizedEmail }
-        });
-
-        if (superAdmin) {
-            const senhaValida = await bcrypt.compare(password, superAdmin.senha);
-            if (senhaValida && superAdmin.ativo) {
-                const token = jwt.sign(
-                    {
-                        id: superAdmin.id,
-                        email: superAdmin.email,
-                        role: 'superadmin',
-                        empresaId: 'superadmin' // Identificador especial
-                    },
-                    JWT_SECRET,
-                    { expiresIn: '1d' }
-                );
-
-                const response = NextResponse.json({
-                    token,
-                    user: { nome: superAdmin.nome, email: superAdmin.email, role: 'superadmin' },
-                    redirect: '/superadmin/dashboard'
-                });
-
-                response.cookies.set('auth_token', token, {
-                    httpOnly: true,
-                    secure: process.env.NODE_ENV === 'production',
-                    sameSite: 'lax',
-                    maxAge: 86400
-                });
-
-                return response;
-            }
-        }
-
-        // --- TENTATIVA 2: LOGIN COMO USUÁRIO COMUM ---
         const usuario = await prisma.usuario.findFirst({
             where: { email: sanitizedEmail }
         });
 
         if (!usuario) {
-            // Delay para mitigar ataque de força bruta
             await new Promise(resolve => setTimeout(resolve, 500));
             return NextResponse.json({ error: 'Credenciais inválidas' }, { status: 401 });
         }
 
-        // Verificação de Bloqueio (Lockout)
+        // Lockout
         if (usuario.lockoutUntil) {
             const now = new Date();
             if (now < usuario.lockoutUntil) {
@@ -90,20 +50,19 @@ export async function POST(request: Request) {
                 updateData.lockoutUntil = new Date(Date.now() + LOCKOUT_TIME_MS);
             }
             await prisma.usuario.update({ where: { id: usuario.id }, data: updateData });
-            
+
             return NextResponse.json({ error: 'Credenciais inválidas' }, { status: 401 });
         }
 
-        // Verificações de Status da Empresa
-        // @ts-ignore
-        const empresa = await prisma.empresa.findUnique({ where: { id: usuario.empresaId } });
-        
-        if (!empresa || !empresa.ativo || empresa.bloqueado) {
-             return NextResponse.json({ error: 'Acesso da empresa suspenso ou inativo.' }, { status: 403 });
-        }
-
-        if (empresa.dataExpiracao && new Date() > new Date(empresa.dataExpiracao)) {
-             return NextResponse.json({ error: 'Assinatura expirada.' }, { status: 403 });
+        // Se não for superadmin, validar empresa
+        if (usuario.role !== 'superadmin') {
+            const empresa = await prisma.empresa.findUnique({ where: { id: usuario.empresaId as string } });
+            if (!empresa || !empresa.ativo || empresa.bloqueado) {
+                return NextResponse.json({ error: 'Acesso da empresa suspenso ou inativo.' }, { status: 403 });
+            }
+            if (empresa.dataExpiracao && new Date() > new Date(empresa.dataExpiracao)) {
+                return NextResponse.json({ error: 'Assinatura expirada.' }, { status: 403 });
+            }
         }
 
         // Login Sucesso
@@ -117,18 +76,18 @@ export async function POST(request: Request) {
                 id: usuario.id,
                 email: usuario.email,
                 role: usuario.role,
-                empresaId: usuario.empresaId
+                empresaId: usuario.empresaId ?? null
             },
             JWT_SECRET,
             { expiresIn: '1d' }
         );
 
         const { senha: _, ...usuarioSemSenha } = usuario;
-        
+
         const response = NextResponse.json({
             token,
             user: usuarioSemSenha,
-            redirect: '/dashboard'
+            redirect: usuario.role === 'superadmin' ? '/superadmin/dashboard' : '/dashboard'
         });
 
         response.cookies.set('auth_token', token, {

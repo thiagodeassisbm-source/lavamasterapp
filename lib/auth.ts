@@ -6,7 +6,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'segredo-super-seguro-lava-master-2
 
 export interface AuthContext {
     userId: string;
-    empresaId: string;
+    empresaId: string | null;
     role: string;
 }
 
@@ -19,12 +19,13 @@ export async function getAuthContext(): Promise<AuthContext | null> {
 
         const decoded = jwt.verify(token, JWT_SECRET) as any;
 
-        // Suporte para Super Admin (que pode ter empresaId especial) ou Usuário comum
-        if (!decoded || (!decoded.empresaId && decoded.role !== 'superadmin')) return null;
+        // Superadmin pode vir sem empresaId; demais precisam de empresaId
+        if (!decoded) return null;
+        if (!decoded.empresaId && decoded.role !== 'superadmin') return null;
 
         return {
             userId: decoded.id || decoded.sub,
-            empresaId: decoded.empresaId || 'superadmin',
+            empresaId: decoded.empresaId ?? null,
             role: decoded.role || 'usuario'
         };
     } catch (error) {

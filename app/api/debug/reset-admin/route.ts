@@ -6,16 +6,34 @@ export const dynamic = 'force-dynamic'
 
 export async function GET() {
     try {
-        const email = 'thiago.deassisbm@gmail.com'
-        const password = 'admin123'
+        const email = process.env.SUPERADMIN_EMAIL || 'thiago.deassisbm@gmail.com'
+        const password = process.env.SUPERADMIN_PASSWORD || 'admin123'
+        const rootEmpresaId = process.env.SUPERADMIN_EMPRESA_ID || 'superadmin-root'
         const hashedPassword = await bcrypt.hash(password, 10)
 
-        // Upsert Super Admin
-        const user = await prisma.superAdmin.upsert({
-            where: { email },
+        await prisma.empresa.upsert({
+            where: { id: rootEmpresaId },
+            update: {},
+            create: {
+                id: rootEmpresaId,
+                nome: 'Superadmin Root',
+                cnpj: '00000000000000-root',
+                email,
+                plano: 'root',
+                limiteUsuarios: 10,
+                limiteClientes: 1000,
+                limiteAgendamentos: 10000,
+                ativo: true,
+            }
+        })
+
+        // Upsert Super Admin na tabela de usuários
+        const user = await prisma.usuario.upsert({
+            where: { email_empresaId: { email, empresaId: rootEmpresaId } },
             update: {
                 senha: hashedPassword,
                 ativo: true,
+                role: 'superadmin',
                 updatedAt: new Date()
             },
             create: {
@@ -23,7 +41,9 @@ export async function GET() {
                 nome: 'Super Admin',
                 email,
                 senha: hashedPassword,
-                ativo: true
+                ativo: true,
+                role: 'superadmin',
+                empresaId: rootEmpresaId
             }
         })
 
