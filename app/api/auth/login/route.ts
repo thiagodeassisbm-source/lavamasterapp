@@ -1,146 +1,117 @@
-
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
 const MAX_ATTEMPTS = 5;
-const LOCKOUT_TIME_MS = 15 * 60 * 1000; // 15 minutos em ms
-const JWT_SECRET = process.env.JWT_SECRET || 'lavamaster-secret-2026-production'
+const LOCKOUT_TIME_MS = 15 * 60 * 1000; 
+// Usando a MESMA chave definida em lib/auth.ts
+const JWT_SECRET = process.env.JWT_SECRET || 'segredo-super-seguro-lava-master-2026';
 
 export async function POST(request: Request) {
     try {
         const { email, password } = await request.json();
-
-        // 1. Sanitizar entrada básica (trim)
         const sanitizedEmail = email?.trim().toLowerCase();
-        console.log('>>> [DEBUG LOGIN] Tentando logar:', sanitizedEmail);
 
         if (!sanitizedEmail || !password) {
-            return NextResponse.json(
-                { error: 'Email e senha são obrigatórios' },
-                { status: 400 }
-            );
+            return NextResponse.json({ error: 'Email e senha são obrigatórios' }, { status: 400 });
         }
 
-        // 2. Buscar usuário
+        // --- TENTATIVA 1: LOGIN COMO SUPER ADMIN ---
+        // Verifica primeiro na tabela de SuperAdmin definida no schema.prisma
+        const superAdmin = await prisma.superAdmin.findUnique({
+            where: { email: sanitizedEmail }
+        });
+
+        if (superAdmin) {
+            const senhaValida = await bcrypt.compare(password, superAdmin.senha);
+            if (senhaValida && superAdmin.ativo) {
+                const token = jwt.sign(
+                    {
+                        id: superAdmin.id,
+                        email: superAdmin.email,
+                        role: 'superadmin',
+                        empresaId: 'superadmin' // Identificador especial
+                    },
+                    JWT_SECRET,
+                    { expiresIn: '1d' }
+                );
+
+                const response = NextResponse.json({
+                    token,
+                    user: { nome: superAdmin.nome, email: superAdmin.email, role: 'superadmin' },
+                    redirect: '/superadmin/dashboard'
+                });
+
+                response.cookies.set('auth_token', token, {
+                    httpOnly: true,
+                    secure: process.env.NODE_ENV === 'production',
+                    sameSite: 'lax',
+                    maxAge: 86400
+                });
+
+                return response;
+            }
+        }
+
+        // --- TENTATIVA 2: LOGIN COMO USUÁRIO COMUM ---
         const usuario = await prisma.usuario.findFirst({
             where: { email: sanitizedEmail }
         });
 
         if (!usuario) {
-            console.log('>>> [DEBUG LOGIN] Usuário não encontrado no banco:', sanitizedEmail);
-            // Delay fake
+            // Delay para mitigar ataque de força bruta
             await new Promise(resolve => setTimeout(resolve, 500));
-            return NextResponse.json(
-                { error: 'Credenciais inválidas' },
-                { status: 401 }
-            );
+            return NextResponse.json({ error: 'Credenciais inválidas' }, { status: 401 });
         }
 
-        console.log('>>> [DEBUG LOGIN] Usuário encontrado:', usuario.email, '| Role:', usuario.role);
-
-        // 3. Verificar Bloqueio de Conta
+        // Verificação de Bloqueio (Lockout)
         if (usuario.lockoutUntil) {
             const now = new Date();
             if (now < usuario.lockoutUntil) {
-                const waitMinutes = Math.ceil((usuario.lockoutUntil.getTime() - now.getTime()) / 60000);
                 return NextResponse.json(
-                    { error: `Conta bloqueada por muitas tentativas. Tente novamente em ${waitMinutes} minutos.` },
-                    { status: 429 } // Too Many Requests
+                    { error: 'Conta bloqueada temporariamente. Tente mais tarde.' },
+                    { status: 429 }
                 );
             } else {
-                // Bloqueio expirou, reseta contador
                 await prisma.usuario.update({
                     where: { id: usuario.id },
-                    data: {
-                        failedLoginAttempts: 0,
-                        lockoutUntil: null
-                    }
+                    data: { failedLoginAttempts: 0, lockoutUntil: null }
                 });
             }
         }
 
-        // 4. Verificar senha
         const senhaValida = await bcrypt.compare(password, usuario.senha);
 
         if (!senhaValida) {
-            // Incrementa tentativas falhas
             const newAttempts = (usuario.failedLoginAttempts || 0) + 1;
             let updateData: any = { failedLoginAttempts: newAttempts };
-
-            // Se exceder limite, bloqueia
             if (newAttempts >= MAX_ATTEMPTS) {
                 updateData.lockoutUntil = new Date(Date.now() + LOCKOUT_TIME_MS);
             }
-
-            await prisma.usuario.update({
-                where: { id: usuario.id },
-                data: updateData
-            });
-
-            const attemptsLeft = MAX_ATTEMPTS - newAttempts;
-            const msg = attemptsLeft > 0
-                ? 'Credenciais inválidas'
-                : 'Muitas tentativas falhas. Conta bloqueada temporariamente.';
-
-            return NextResponse.json(
-                { error: msg },
-                { status: 401 }
-            );
+            await prisma.usuario.update({ where: { id: usuario.id }, data: updateData });
+            
+            return NextResponse.json({ error: 'Credenciais inválidas' }, { status: 401 });
         }
 
-        // 5. Verificar Empresa e Plano (Bloqueio ou Expiração)
+        // Verificações de Status da Empresa
         // @ts-ignore
-        const empresa = await prisma.empresa.findUnique({
-            where: { id: usuario.empresaId }
-        });
-
-        if (!empresa || !empresa.ativo) {
-            return NextResponse.json(
-                { error: 'Empresa inativa. Entre em contato com o suporte.' },
-                { status: 403 }
-            );
+        const empresa = await prisma.empresa.findUnique({ where: { id: usuario.empresaId } });
+        
+        if (!empresa || !empresa.ativo || empresa.bloqueado) {
+             return NextResponse.json({ error: 'Acesso da empresa suspenso ou inativo.' }, { status: 403 });
         }
 
-        if (empresa.bloqueado) {
-            return NextResponse.json(
-                { error: `Acesso suspenso: ${empresa.motivoBloqueio || 'Consulte a administração'}` },
-                { status: 403 }
-            );
+        if (empresa.dataExpiracao && new Date() > new Date(empresa.dataExpiracao)) {
+             return NextResponse.json({ error: 'Assinatura expirada.' }, { status: 403 });
         }
 
-        // Verificação de Expiração do Plano
-        if (empresa.dataExpiracao) {
-            const hoje = new Date();
-            const expira = new Date(empresa.dataExpiracao);
-
-            if (hoje > expira) {
-                return NextResponse.json(
-                    { error: 'Seu período de teste ou assinatura expirou. Regularize sua conta para continuar.' },
-                    { status: 403 }
-                );
-            }
-        }
-
-        // 6. Verificar se o usuário está ativo
-        if (!usuario.ativo) {
-            return NextResponse.json(
-                { error: 'Seu usuário está desativado. Entre em contato com o administrador da sua empresa.' },
-                { status: 403 }
-            );
-        }
-
-        // 7. Sucesso: Resetar contadores de segurança
+        // Login Sucesso
         await prisma.usuario.update({
             where: { id: usuario.id },
-            data: {
-                failedLoginAttempts: 0,
-                lockoutUntil: null
-            }
+            data: { failedLoginAttempts: 0, lockoutUntil: null }
         });
 
-        // 7. Gerar Token JWT
         const token = jwt.sign(
             {
                 id: usuario.id,
@@ -152,28 +123,25 @@ export async function POST(request: Request) {
             { expiresIn: '1d' }
         );
 
-        // Remover senha e dados de segurança do retorno
-        const { senha: _, failedLoginAttempts: __, lockoutUntil: ___, ...usuarioSemSenha } = usuario;
-
+        const { senha: _, ...usuarioSemSenha } = usuario;
+        
         const response = NextResponse.json({
             token,
-            user: usuarioSemSenha
+            user: usuarioSemSenha,
+            redirect: '/dashboard'
         });
 
         response.cookies.set('auth_token', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'lax',
-            maxAge: 86400 // 1 dia
+            maxAge: 86400
         });
 
         return response;
 
     } catch (error) {
         console.error('Erro no login:', error);
-        return NextResponse.json(
-            { error: 'Erro interno ao realizar login' },
-            { status: 500 }
-        );
+        return NextResponse.json({ error: 'Erro interno' }, { status: 500 });
     }
 }

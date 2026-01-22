@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import jwt from 'jsonwebtoken';
 
+// Definição única da chave para evitar divergências
 const JWT_SECRET = process.env.JWT_SECRET || 'segredo-super-seguro-lava-master-2026';
 
 export interface AuthContext {
@@ -18,11 +19,12 @@ export async function getAuthContext(): Promise<AuthContext | null> {
 
         const decoded = jwt.verify(token, JWT_SECRET) as any;
 
-        if (!decoded || !decoded.empresaId) return null;
+        // Suporte para Super Admin (que pode ter empresaId especial) ou Usuário comum
+        if (!decoded || (!decoded.empresaId && decoded.role !== 'superadmin')) return null;
 
         return {
             userId: decoded.id || decoded.sub,
-            empresaId: decoded.empresaId,
+            empresaId: decoded.empresaId || 'superadmin',
             role: decoded.role || 'usuario'
         };
     } catch (error) {
@@ -32,5 +34,5 @@ export async function getAuthContext(): Promise<AuthContext | null> {
 }
 
 export function verifyAdmin(ctx: AuthContext) {
-    return ctx.role === 'admin' || ctx.role === 'gerente';
+    return ctx.role === 'admin' || ctx.role === 'gerente' || ctx.role === 'superadmin';
 }
