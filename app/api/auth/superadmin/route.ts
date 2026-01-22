@@ -11,12 +11,18 @@ export async function POST(request: NextRequest) {
         console.log('🔍 [SuperAdmin Login] Iniciando processo de login...')
 
         const body = await request.json()
-        console.log('📥 [SuperAdmin Login] Body recebido:', { email: body.email, senhaLength: body.senha?.length })
+        // Normalizar email
+        const email = body.email ? body.email.trim().toLowerCase() : ''
+        const senha = body.senha
 
-        const { email, senha } = body
+        console.log('📥 [SuperAdmin Login] Tentativa:', {
+            emailOriginal: body.email,
+            emailNormalizado: email,
+            senhaLength: senha?.length
+        })
 
         if (!email || !senha) {
-            console.log('⚠️ [SuperAdmin Login] Email ou senha não fornecidos')
+            console.log('⚠️ [SuperAdmin Login] Dados incompletos')
             return NextResponse.json(
                 { error: 'Email e senha são obrigatórios' },
                 { status: 400 }
@@ -24,9 +30,14 @@ export async function POST(request: NextRequest) {
         }
 
         // Buscar Super Admin
-        console.log('🔍 [SuperAdmin Login] Buscando superadmin com email:', email)
-        const superAdmin = await prisma.superAdmin.findUnique({
-            where: { email }
+        console.log('🔍 [SuperAdmin Login] Buscando no banco...')
+        const superAdmin = await prisma.superAdmin.findFirst({
+            where: {
+                email: {
+                    equals: email,
+                    mode: 'insensitive' // Ignorar case no banco também
+                }
+            }
         })
         console.log('📊 [SuperAdmin Login] SuperAdmin encontrado:', superAdmin ? 'Sim' : 'Não')
 
