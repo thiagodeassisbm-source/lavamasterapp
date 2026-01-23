@@ -405,21 +405,21 @@ function ClientesPageContent() {
                                     </div>
 
                                     {/* Coluna Central - Veículos (4 colunas - Centralizado na página) */}
-                                    <div className="md:col-span-4 flex items-center justify-center">
+                                    <div className="md:col-span-4 flex items-center justify-center px-2">
                                         {cliente.veiculos && cliente.veiculos.length > 0 ? (
-                                            <div className="flex flex-col items-center gap-1.5 w-full max-w-[200px]">
+                                            <div className="flex flex-col items-center gap-1.5 w-full max-w-[300px]">
                                                 {cliente.veiculos.slice(0, 1).map((veiculo: any, idx: number) => (
                                                     <div
                                                         key={idx}
                                                         className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 rounded-lg border border-cyan-500/20 w-full justify-center"
                                                     >
                                                         <Car className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
-                                                        <div className="text-center truncate">
-                                                            <span className="text-white font-medium text-sm">
+                                                        <div className="text-center flex items-center gap-1.5 flex-wrap justify-center">
+                                                            <span className="text-white font-medium text-sm truncate max-w-[120px]" title={`${veiculo.marca} ${veiculo.modelo}`}>
                                                                 {veiculo.marca} {veiculo.modelo}
                                                             </span>
                                                             {veiculo.placa && (
-                                                                <span className="text-cyan-400 text-xs font-mono ml-1.5">
+                                                                <span className="text-cyan-400 text-xs font-mono whitespace-nowrap bg-cyan-500/10 px-1.5 py-0.5 rounded border border-cyan-500/20">
                                                                     {veiculo.placa}
                                                                 </span>
                                                             )}
