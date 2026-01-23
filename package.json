@@ -8,7 +8,8 @@
     "postinstall": "prisma generate",
     "start": "next start",
     "bot": "node whatsapp-bot.js",
-    "lint": "eslint"
+    "lint": "eslint",
+    "force-deploy": "echo 'deploy-trigger-v2'"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
