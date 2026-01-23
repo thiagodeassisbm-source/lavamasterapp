@@ -69,7 +69,7 @@ const menuItems: MenuItem[] = [
 
 export default function MobileMenu() {
     const [isOpen, setIsOpen] = useState(false);
-    const [expandedMenus, setExpandedMenus] = useState<string[]>(['Configurações']); // Default expanded? Or empty.
+    const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
     const pathname = usePathname();
     const router = useRouter();
 
