@@ -8,8 +8,8 @@ export const prisma =
         log: ['query', 'info', 'warn', 'error'],
         datasources: {
             db: {
-                // TENTATIVA FINAL: Pooler Transaction Mode (6543) com SSL Exigido e User.Tenant
-                url: "postgres://postgres.bkhtemypttswlkluaort:Z4PKLWQY8J9gF6Kp@aws-0-sa-east-1.pooler.supabase.com:6543/postgres?sslmode=require&pgbouncer=true&connection_limit=1",
+                // TENTATIVA FINAL: Pooler Transaction Mode (6543) - Host Correto AWS-1
+                url: "postgres://postgres.bkhtemypttswlkluaort:Z4PKLWQY8J9gF6Kp@aws-1-sa-east-1.pooler.supabase.com:6543/postgres?sslmode=require&pgbouncer=true&connection_limit=1",
             },
         },
     });
