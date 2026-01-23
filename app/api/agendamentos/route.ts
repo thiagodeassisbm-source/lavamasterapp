@@ -37,6 +37,7 @@ export async function GET(request: NextRequest) {
             valorTotal: Number(a.valorTotal || 0),
             veiculo: a.veiculo ? `${a.veiculo.modelo} - ${a.veiculo.placa || ''}` : undefined,
             servicos: a.servicos ? a.servicos.map((s: any) => s.servico?.nome || s.servicoId) : [],
+            observacoes: a.observacoes || '',
             createdAt: a.createdAt,
             updatedAt: a.updatedAt
         }));
@@ -96,8 +97,10 @@ export async function POST(request: NextRequest) {
 
         const date = new Date(dataHora);
 
-        // Se o valorTotal não vier, calculamos a soma dos serviços
-        const total = valorTotal || servicos?.reduce((acc: number, s: any) => acc + (s.preco || 0), 0) || 0;
+        // Garantir que o valorTotal seja a soma dos serviços se vier zerado ou não vier
+        const servicosArray = Array.isArray(servicos) ? servicos : [];
+        const calculatedTotal = servicosArray.reduce((acc: number, s: any) => acc + (Number(s.preco) || 0), 0);
+        const finalTotal = Number(valorTotal) > 0 ? Number(valorTotal) : calculatedTotal;
 
         const novoAgendamento = await prisma.agendamento.create({
             data: {
@@ -107,13 +110,13 @@ export async function POST(request: NextRequest) {
                 dataHora: date,
                 status: status || 'agendado',
                 observacoes: observacoes,
-                valorTotal: total,
+                valorTotal: finalTotal,
                 servicos: {
-                    create: servicos?.map((s: any) => ({
+                    create: servicosArray.map((s: any) => ({
                         servicoId: s.servicoId,
                         quantidade: 1,
-                        valorUnitario: s.preco || 0,
-                        valorTotal: s.preco || 0
+                        valorUnitario: Number(s.preco) || 0,
+                        valorTotal: Number(s.preco) || 0
                     }))
                 }
             },
@@ -147,7 +150,11 @@ export async function PUT(request: NextRequest) {
         }
 
         const date = dataHora ? new Date(dataHora) : undefined;
-        const total = valorTotal !== undefined ? Number(valorTotal) : undefined;
+
+        // Garantir que o valorTotal seja a soma dos serviços se vier zerado ou não vier
+        const servicosArray = Array.isArray(servicos) ? servicos : [];
+        const calculatedTotal = servicosArray.reduce((acc: number, s: any) => acc + (Number(s.preco) || 0), 0);
+        const finalTotal = Number(valorTotal) > 0 ? Number(valorTotal) : (servicosArray.length > 0 ? calculatedTotal : undefined);
 
         // Atualização básica
         const updatedAgendamento = await prisma.agendamento.update({
@@ -158,7 +165,7 @@ export async function PUT(request: NextRequest) {
                 dataHora: date,
                 status: status || undefined,
                 observacoes: observacoes !== undefined ? observacoes : undefined,
-                valorTotal: total
+                valorTotal: finalTotal
             }
         });
 
@@ -176,8 +183,8 @@ export async function PUT(request: NextRequest) {
                         agendamentoId: id,
                         servicoId: s.servicoId,
                         quantidade: 1,
-                        valorUnitario: s.preco || 0,
-                        valorTotal: s.preco || 0
+                        valorUnitario: Number(s.preco) || 0,
+                        valorTotal: Number(s.preco) || 0
                     }))
                 });
             }

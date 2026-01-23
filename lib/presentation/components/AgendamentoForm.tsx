@@ -104,7 +104,6 @@ export default function AgendamentoForm({ onClose, onSave, initialData }: Agenda
                 setValue('clienteId', cliente.id);
 
                 // 2. Encontrar o Veículo
-                // O AgendaPage passa 'veiculo' como string "Modelo - Placa"
                 const veiculoStr = (initialData as any).veiculo;
                 if (veiculoStr) {
                     const foundVeiculo = cliente.veiculos?.find((v: any) =>
@@ -129,6 +128,19 @@ export default function AgendamentoForm({ onClose, onSave, initialData }: Agenda
             // 4. Setar Status
             if (initialData.status) {
                 setValue('status', initialData.status as any);
+            }
+
+            // 5. Setar Data e Hora (Formatar para datetime-local)
+            if (initialData.dataHora) {
+                const dt = new Date(initialData.dataHora);
+                const offset = dt.getTimezoneOffset() * 60000;
+                const localISOTime = new Date(dt.getTime() - offset).toISOString().slice(0, 16);
+                setValue('dataHora', localISOTime);
+            }
+
+            // 6. Setar Observações
+            if ((initialData as any).observacoes) {
+                setValue('observacoes', (initialData as any).observacoes);
             }
         }
     }, [clientes, servicosDisponiveis, initialData, setValue]);
