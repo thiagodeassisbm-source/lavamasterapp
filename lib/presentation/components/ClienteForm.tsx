@@ -170,22 +170,43 @@ export default function ClienteForm({ onClose, onSave, initialData }: ClienteFor
         }
     };
 
-    const handleSaveVeiculoLocal = async () => {
-        const isValid = await triggerVeiculo();
-        if (isValid) {
-            const data = getValuesVeiculo();
+    const handleSaveVeiculoLocal = async (e: React.MouseEvent) => {
+        e.preventDefault(); // Mantenha o preventDefault por segurança
+        console.log('Tentando salvar veículo...');
+        try {
+            const isValid = await triggerVeiculo();
+            console.log('Validação do veículo:', isValidCallback(isValid));
 
-            if (editingVeiculoIndex !== null) {
-                update(editingVeiculoIndex, data);
-                setEditingVeiculoIndex(null);
-            } else {
-                append(data);
+            // Força validação personalizada se necessário (ex: marca/modelo obrigatórios)
+            const values = getValuesVeiculo();
+            if (!values.marca && !values.modelo) {
+                // Se quiser forçar que tenha pelo menos marca ou modelo
+                // Mas o schema atual é opcional. Vamos assumir que está ok.
             }
 
-            resetVeiculo();
-            setIsAddingVeiculo(false);
+            if (isValid) {
+                console.log('Dados do formulário:', values);
+                console.log('Index de edição:', editingVeiculoIndex);
+
+                if (editingVeiculoIndex !== null) {
+                    update(editingVeiculoIndex, values);
+                    setEditingVeiculoIndex(null);
+                    console.log('Veículo atualizado!');
+                } else {
+                    append(values);
+                    console.log('Veículo adicionado!');
+                }
+
+                resetVeiculo();
+                setIsAddingVeiculo(false);
+            }
+        } catch (error) {
+            console.error('Erro ao salvar veículo localmente:', error);
         }
     };
+
+    // Helper para log
+    const isValidCallback = (v: boolean) => v;
 
     // Toast state
     const [toast, setToast] = useState<{ isOpen: boolean; type: 'success' | 'error' | 'warning'; title: string; message: string }>({
@@ -268,7 +289,7 @@ export default function ClienteForm({ onClose, onSave, initialData }: ClienteFor
             />
 
             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
-                <div className="glass-effect rounded-3xl w-full max-w-6xl max-h-[90vh] overflow-hidden border border-white/20 shadow-2xl animate-scale-in flex flex-col">
+                <div className="glass-effect rounded-3xl w-full max-w-6xl h-[95vh] border border-white/20 shadow-2xl animate-scale-in flex flex-col">
                     {/* Header */}
                     <div className="bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border-b border-white/10 p-6 flex-shrink-0">
                         <div className="flex items-center justify-between">
@@ -324,10 +345,10 @@ export default function ClienteForm({ onClose, onSave, initialData }: ClienteFor
 
                     {/* Form Content - Scrollable Area */}
                     <form className="flex-1 overflow-y-auto p-6">
-                        <div className="space-y-6">
+                        <div className="space-y-4">
                             {activeTab === 'dados' ? (
                                 // Conteúdo da Aba Dados Pessoais
-                                <div className="space-y-6 animate-slide-up">
+                                <div className="space-y-4 animate-slide-up">
                                     {/* ... (Manteve os campos de dados pessoais iguais) ... */}
                                     {/* Dados Básicos */}
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
