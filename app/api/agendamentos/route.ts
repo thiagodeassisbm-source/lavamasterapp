@@ -131,3 +131,62 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Erro ao criar agendamento' }, { status: 500 });
     }
 }
+
+export async function PUT(request: NextRequest) {
+    try {
+        const ctx = await getAuthContext();
+        if (!ctx || !ctx.empresaId) {
+            return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+        }
+
+        const body = await request.json();
+        const { id, clienteId, dataHora, status, observacoes, servicos, valorTotal, veiculoId } = body;
+
+        if (!id) {
+            return NextResponse.json({ error: 'ID é obrigatório' }, { status: 400 });
+        }
+
+        const date = dataHora ? new Date(dataHora) : undefined;
+        const total = valorTotal !== undefined ? Number(valorTotal) : undefined;
+
+        // Atualização básica
+        const updatedAgendamento = await prisma.agendamento.update({
+            where: { id },
+            data: {
+                clienteId: clienteId || undefined,
+                veiculoId: veiculoId || undefined,
+                dataHora: date,
+                status: status || undefined,
+                observacoes: observacoes !== undefined ? observacoes : undefined,
+                valorTotal: total
+            }
+        });
+
+        // Se serviços foram enviados, atualizamos a tabela ponte
+        if (servicos && Array.isArray(servicos)) {
+            // Remove antigos
+            await prisma.agendamentoServico.deleteMany({
+                where: { agendamentoId: id }
+            });
+
+            // Cria novos
+            if (servicos.length > 0) {
+                await prisma.agendamentoServico.createMany({
+                    data: servicos.map((s: any) => ({
+                        agendamentoId: id,
+                        servicoId: s.servicoId,
+                        quantidade: 1,
+                        valorUnitario: s.preco || 0,
+                        valorTotal: s.preco || 0
+                    }))
+                });
+            }
+        }
+
+        return NextResponse.json(updatedAgendamento);
+
+    } catch (error) {
+        console.error('Erro ao atualizar agendamento:', error);
+        return NextResponse.json({ error: 'Erro ao atualizar agendamento' }, { status: 500 });
+    }
+}

@@ -123,12 +123,21 @@ export default function AgendaPage() {
     const handleSaveAgendamento = async (data: any) => {
         try {
             if (selectedAgendamento) {
-                // TODO: Implementar endpoint PUT para atualização real
-                setAgendamentos(agendamentos.map(a =>
-                    a.id === selectedAgendamento.id
-                        ? { ...a, ...data }
-                        : a
-                ));
+                const res = await fetch('/api/agendamentos', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ id: selectedAgendamento.id, ...data })
+                });
+
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.error || 'Erro ao atualizar agendamento');
+                }
+
+                showToast('Sucesso!', 'Agendamento atualizado com sucesso.', 'success');
+                fetchAgendamentos();
             } else {
                 const res = await fetch('/api/agendamentos', {
                     method: 'POST',
