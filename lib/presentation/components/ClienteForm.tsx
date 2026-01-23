@@ -56,11 +56,12 @@ const formatDateForInput = (value?: string) => {
 };
 
 const veiculoSchema = z.object({
-    marca: z.string().optional(),
-    modelo: z.string().optional(),
-    cor: z.string().optional(),
-    ano: z.string().optional(),
-    placa: z.string().optional(),
+    marca: z.string().optional().or(z.literal('')),
+    modelo: z.string().optional().or(z.literal('')),
+    cor: z.string().optional().or(z.literal('')),
+    ano: z.string().optional().or(z.literal('')),
+    placa: z.string().optional().or(z.literal('')),
+    id: z.string().optional(), // Allow ID to pass through
 });
 
 const clienteSchema = z.object({
