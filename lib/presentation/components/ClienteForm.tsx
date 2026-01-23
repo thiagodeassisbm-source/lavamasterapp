@@ -123,8 +123,9 @@ export default function ClienteForm({ onClose, onSave, initialData }: ClienteFor
         },
     });
 
-    // Hooks para gerenciar array de veículos
-    const { fields, append, remove } = useFieldArray({
+    const [editingVeiculoIndex, setEditingVeiculoIndex] = useState<number | null>(null);
+
+    const { fields, append, remove, update } = useFieldArray({
         control,
         name: "veiculos"
     });
@@ -169,11 +170,18 @@ export default function ClienteForm({ onClose, onSave, initialData }: ClienteFor
         }
     };
 
-    const handleAddVeiculo = async () => {
+    const handleSaveVeiculoLocal = async () => {
         const isValid = await triggerVeiculo();
         if (isValid) {
             const data = getValuesVeiculo();
-            append(data);
+
+            if (editingVeiculoIndex !== null) {
+                update(editingVeiculoIndex, data);
+                setEditingVeiculoIndex(null);
+            } else {
+                append(data);
+            }
+
             resetVeiculo();
             setIsAddingVeiculo(false);
         }
@@ -189,15 +197,14 @@ export default function ClienteForm({ onClose, onSave, initialData }: ClienteFor
 
     const handleEditVeiculo = (index: number) => {
         const veiculo = fields[index];
-        // Remove from list
-        remove(index);
         // Populate form
         setValueVeiculo('marca', veiculo.marca);
         setValueVeiculo('modelo', veiculo.modelo);
         setValueVeiculo('cor', veiculo.cor || '');
         setValueVeiculo('ano', veiculo.ano || '');
         setValueVeiculo('placa', veiculo.placa || '');
-        // Show form
+
+        setEditingVeiculoIndex(index);
         setIsAddingVeiculo(true);
         setActiveTab('veiculos');
     };
@@ -261,7 +268,7 @@ export default function ClienteForm({ onClose, onSave, initialData }: ClienteFor
             />
 
             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
-                <div className="glass-effect rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-hidden border border-white/20 shadow-2xl animate-scale-in flex flex-col">
+                <div className="glass-effect rounded-3xl w-full max-w-6xl max-h-[90vh] overflow-hidden border border-white/20 shadow-2xl animate-scale-in flex flex-col">
                     {/* Header */}
                     <div className="bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border-b border-white/10 p-6 flex-shrink-0">
                         <div className="flex items-center justify-between">
@@ -582,8 +589,8 @@ export default function ClienteForm({ onClose, onSave, initialData }: ClienteFor
                                     {/* Form de Adicionar Veículo */}
                                     {(isAddingVeiculo || fields.length === 0) && (
                                         <div className="bg-white/5 border border-white/10 rounded-xl p-6 animate-scale-in">
-                                            <h4 className="text-white font-medium mb-4">{fields.length === 0 && !isAddingVeiculo ? 'Adicionar Primeiro Veículo' : 'Dados do Veículo'}</h4>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <h4 className="text-white font-medium mb-4">{editingVeiculoIndex !== null ? 'Editar Veículo' : (fields.length === 0 ? 'Adicionar Primeiro Veículo' : 'Dados do Veículo')}</h4>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                                 <div>
                                                     <label className="block text-sm font-medium text-slate-300 mb-2">Marca *</label>
                                                     <select
@@ -642,7 +649,11 @@ export default function ClienteForm({ onClose, onSave, initialData }: ClienteFor
                                                 {fields.length > 0 && (
                                                     <button
                                                         type="button"
-                                                        onClick={() => setIsAddingVeiculo(false)}
+                                                        onClick={() => {
+                                                            setIsAddingVeiculo(false);
+                                                            setEditingVeiculoIndex(null);
+                                                            resetVeiculo();
+                                                        }}
                                                         className="px-4 py-2 text-slate-300 hover:text-white transition-colors"
                                                     >
                                                         Cancelar
@@ -650,10 +661,10 @@ export default function ClienteForm({ onClose, onSave, initialData }: ClienteFor
                                                 )}
                                                 <button
                                                     type="button"
-                                                    onClick={handleAddVeiculo}
+                                                    onClick={handleSaveVeiculoLocal}
                                                     className="px-6 py-2 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 transition-colors"
                                                 >
-                                                    {fields.length === 0 && !isAddingVeiculo ? 'Adicionar' : 'Salvar Veículo'}
+                                                    {editingVeiculoIndex !== null ? 'Salvar Alterações' : 'Adicionar Veículo'}
                                                 </button>
                                             </div>
                                         </div>
