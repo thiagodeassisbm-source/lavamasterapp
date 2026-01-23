@@ -56,8 +56,8 @@ const formatDateForInput = (value?: string) => {
 };
 
 const veiculoSchema = z.object({
-    marca: z.string().min(1, 'Marca é obrigatória'),
-    modelo: z.string().min(1, 'Modelo é obrigatório'),
+    marca: z.string().optional(),
+    modelo: z.string().optional(),
     cor: z.string().optional(),
     ano: z.string().optional(),
     placa: z.string().optional(),
