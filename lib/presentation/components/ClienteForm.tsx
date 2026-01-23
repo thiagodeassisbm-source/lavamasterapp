@@ -124,29 +124,25 @@ export default function ClienteForm({ onClose, onSave, initialData }: ClienteFor
     });
 
     const [editingVeiculoIndex, setEditingVeiculoIndex] = useState<number | null>(null);
+    const [veiculoForm, setVeiculoForm] = useState({
+        marca: '',
+        modelo: '',
+        cor: '',
+        ano: '',
+        placa: ''
+    });
 
     const { fields, append, remove, update } = useFieldArray({
         control,
         name: "veiculos"
     });
 
-    // Form temporário para adicionar novo veículo
-    const {
-        register: registerVeiculo,
-        formState: { errors: errorsVeiculo },
-        trigger: triggerVeiculo,
-        getValues: getValuesVeiculo,
-        setValue: setValueVeiculo,
-        reset: resetVeiculo
-    } = useForm({
-        resolver: zodResolver(veiculoSchema),
-        defaultValues: {
-            marca: '',
-            modelo: '',
-            cor: '',
-            ano: '',
-            placa: ''
-        }
+    // Toast state
+    const [toast, setToast] = useState<{ isOpen: boolean; type: 'success' | 'error' | 'warning'; title: string; message: string }>({
+        isOpen: false,
+        type: 'error',
+        title: '',
+        message: ''
     });
 
     const handleCEPChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -170,60 +166,49 @@ export default function ClienteForm({ onClose, onSave, initialData }: ClienteFor
         }
     };
 
-    const handleSaveVeiculoLocal = async (e: React.MouseEvent) => {
-        e.preventDefault(); // Mantenha o preventDefault por segurança
-        console.log('Tentando salvar veículo...');
-        try {
-            const isValid = await triggerVeiculo();
-            console.log('Validação do veículo:', isValidCallback(isValid));
+    const handleSaveVeiculoLocal = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
 
-            // Força validação personalizada se necessário (ex: marca/modelo obrigatórios)
-            const values = getValuesVeiculo();
-            if (!values.marca && !values.modelo) {
-                // Se quiser forçar que tenha pelo menos marca ou modelo
-                // Mas o schema atual é opcional. Vamos assumir que está ok.
-            }
+        console.log('Botão Salvar Veículo clicado!');
 
-            if (isValid) {
-                console.log('Dados do formulário:', values);
-                console.log('Index de edição:', editingVeiculoIndex);
-
-                if (editingVeiculoIndex !== null) {
-                    update(editingVeiculoIndex, values);
-                    setEditingVeiculoIndex(null);
-                    console.log('Veículo atualizado!');
-                } else {
-                    append(values);
-                    console.log('Veículo adicionado!');
-                }
-
-                resetVeiculo();
-                setIsAddingVeiculo(false);
-            }
-        } catch (error) {
-            console.error('Erro ao salvar veículo localmente:', error);
+        if (!veiculoForm.marca || !veiculoForm.modelo) {
+            setToast({
+                isOpen: true,
+                type: 'warning',
+                title: 'Campos Obrigatórios',
+                message: 'Marca e Modelo são obrigatórios para o veículo.'
+            });
+            return;
         }
+
+        if (editingVeiculoIndex !== null) {
+            update(editingVeiculoIndex, { ...veiculoForm });
+            setEditingVeiculoIndex(null);
+        } else {
+            append({ ...veiculoForm });
+        }
+
+        // Reset form local
+        setVeiculoForm({
+            marca: '',
+            modelo: '',
+            cor: '',
+            ano: '',
+            placa: ''
+        });
+        setIsAddingVeiculo(false);
     };
-
-    // Helper para log
-    const isValidCallback = (v: boolean) => v;
-
-    // Toast state
-    const [toast, setToast] = useState<{ isOpen: boolean; type: 'success' | 'error' | 'warning'; title: string; message: string }>({
-        isOpen: false,
-        type: 'error',
-        title: '',
-        message: ''
-    });
 
     const handleEditVeiculo = (index: number) => {
         const veiculo = fields[index];
-        // Populate form
-        setValueVeiculo('marca', veiculo.marca);
-        setValueVeiculo('modelo', veiculo.modelo);
-        setValueVeiculo('cor', veiculo.cor || '');
-        setValueVeiculo('ano', veiculo.ano || '');
-        setValueVeiculo('placa', veiculo.placa || '');
+        setVeiculoForm({
+            marca: veiculo.marca || '',
+            modelo: veiculo.modelo || '',
+            cor: veiculo.cor || '',
+            ano: veiculo.ano || '',
+            placa: veiculo.placa || ''
+        });
 
         setEditingVeiculoIndex(index);
         setIsAddingVeiculo(true);
@@ -233,12 +218,8 @@ export default function ClienteForm({ onClose, onSave, initialData }: ClienteFor
     const onSubmit = async (data: ClienteFormData) => {
         setIsSubmitting(true);
         try {
-            // DEBUG: Salva os dados no localStorage para captura na página de debug
-            if (typeof window !== 'undefined') {
-                localStorage.setItem('DEBUG_CLIENTE_PAYLOAD', JSON.stringify(data, null, 2));
-            }
             await onSave(data);
-            setShowSuccess(true); // Mostra o popup de sucesso
+            setShowSuccess(true);
         } catch (error: any) {
             console.error('Erro ao salvar cliente:', error);
             setToast({
@@ -289,19 +270,19 @@ export default function ClienteForm({ onClose, onSave, initialData }: ClienteFor
             />
 
             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
-                <div className="glass-effect rounded-3xl w-full max-w-6xl h-[95vh] border border-white/20 shadow-2xl animate-scale-in flex flex-col">
+                <div className="glass-effect rounded-3xl w-full max-w-6xl h-[95vh] border border-white/20 shadow-2xl animate-scale-in flex flex-col overflow-hidden">
                     {/* Header */}
-                    <div className="bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border-b border-white/10 p-6 flex-shrink-0">
+                    <div className="bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border-b border-white/10 p-5 flex-shrink-0">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
-                                    <User className="w-6 h-6 text-white" />
+                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+                                    <User className="w-5 h-5 text-white" />
                                 </div>
                                 <div>
-                                    <h2 className="text-2xl font-bold text-white">
+                                    <h2 className="text-xl font-bold text-white">
                                         {initialData ? 'Editar Cliente' : 'Novo Cliente'}
                                     </h2>
-                                    <p className="text-slate-400 text-sm">Preencha os dados do cliente</p>
+                                    <p className="text-slate-400 text-xs">Informações completas do cliente</p>
                                 </div>
                             </div>
                             <button
@@ -313,380 +294,155 @@ export default function ClienteForm({ onClose, onSave, initialData }: ClienteFor
                         </div>
 
                         {/* Tabs */}
-                        <div className="flex gap-4 mt-6">
+                        <div className="flex gap-4 mt-4">
                             <button
                                 type="button"
                                 onClick={() => setActiveTab('dados')}
-                                className={`pb-2 text-sm font-medium transition-colors relative ${activeTab === 'dados'
-                                    ? 'text-white'
-                                    : 'text-slate-400 hover:text-white'
-                                    }`}
+                                className={`pb-2 text-sm font-medium transition-colors relative ${activeTab === 'dados' ? 'text-white' : 'text-slate-400 hover:text-white'}`}
                             >
                                 Dados Pessoais
-                                {activeTab === 'dados' && (
-                                    <div className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-500 rounded-full" />
-                                )}
+                                {activeTab === 'dados' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-500 rounded-full" />}
                             </button>
                             <button
                                 type="button"
                                 onClick={() => setActiveTab('veiculos')}
-                                className={`pb-2 text-sm font-medium transition-colors relative ${activeTab === 'veiculos'
-                                    ? 'text-white'
-                                    : 'text-slate-400 hover:text-white'
-                                    }`}
+                                className={`pb-2 text-sm font-medium transition-colors relative ${activeTab === 'veiculos' ? 'text-white' : 'text-slate-400 hover:text-white'}`}
                             >
                                 Veículos ({fields.length})
-                                {activeTab === 'veiculos' && (
-                                    <div className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-500 rounded-full" />
-                                )}
+                                {activeTab === 'veiculos' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-500 rounded-full" />}
                             </button>
                         </div>
                     </div>
 
                     {/* Form Content - Scrollable Area */}
-                    <form className="flex-1 overflow-y-auto p-6">
+                    <form className="flex-1 overflow-y-auto p-5" onSubmit={(e) => e.preventDefault()}>
                         <div className="space-y-4">
                             {activeTab === 'dados' ? (
-                                // Conteúdo da Aba Dados Pessoais
-                                <div className="space-y-4 animate-slide-up">
-                                    {/* ... (Manteve os campos de dados pessoais iguais) ... */}
-                                    {/* Dados Básicos */}
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div className="md:col-span-2">
-                                            <label className="block text-sm font-medium text-slate-300 mb-2">
-                                                Nome Completo *
-                                            </label>
-                                            <input
-                                                {...register('nome')}
-                                                type="text"
-                                                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                                                placeholder="Digite o nome completo"
-                                            />
-                                            {errors.nome && (
-                                                <p className="text-red-400 text-sm mt-1">{errors.nome.message}</p>
-                                            )}
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-sm font-medium text-slate-300 mb-2">
-                                                CPF
-                                            </label>
-                                            <input
-                                                {...register('cpf')}
-                                                onChange={(e) => {
-                                                    e.target.value = formatCPF(e.target.value);
-                                                    register('cpf').onChange(e);
-                                                }}
-                                                type="text"
-                                                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                                                placeholder="000.000.000-00"
-                                                maxLength={14}
-                                            />
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-sm font-medium text-slate-300 mb-2">
-                                                Data de Nascimento
-                                            </label>
-                                            <div className="relative">
-                                                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                                                <input
-                                                    {...register('dataNascimento')}
-                                                    type="date"
-                                                    className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                                                />
-                                            </div>
-                                        </div>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-slide-up">
+                                    <div className="md:col-span-2">
+                                        <label className="block text-xs font-medium text-slate-400 mb-1.5">Nome Completo *</label>
+                                        <input {...register('nome')} className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="Nome do cliente" />
+                                        {errors.nome && <p className="text-red-400 text-[10px] mt-1">{errors.nome.message}</p>}
                                     </div>
-
-                                    {/* Contato */}
                                     <div>
-                                        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                                            <Phone className="w-5 h-5 text-green-400" />
-                                            Contato
-                                        </h3>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div>
-                                                <label className="block text-sm font-medium text-slate-300 mb-2">
-                                                    Telefone *
-                                                </label>
-                                                <div className="relative">
-                                                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                                                    <input
-                                                        {...register('telefone')}
-                                                        onChange={(e) => {
-                                                            e.target.value = formatTelefone(e.target.value);
-                                                            register('telefone').onChange(e);
-                                                        }}
-                                                        type="tel"
-                                                        className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                                                        placeholder="(00) 00000-0000"
-                                                        maxLength={15}
-                                                    />
-                                                </div>
-                                                {errors.telefone && (
-                                                    <p className="text-red-400 text-sm mt-1">{errors.telefone.message}</p>
-                                                )}
-                                            </div>
-
-                                            <div>
-                                                <label className="block text-sm font-medium text-slate-300 mb-2">
-                                                    Email
-                                                </label>
-                                                <div className="relative">
-                                                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                                                    <input
-                                                        {...register('email')}
-                                                        type="email"
-                                                        className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                                                        placeholder="email@exemplo.com"
-                                                    />
-                                                </div>
-                                                {errors.email && (
-                                                    <p className="text-red-400 text-sm mt-1">{errors.email.message}</p>
-                                                )}
-                                            </div>
-                                        </div>
+                                        <label className="block text-xs font-medium text-slate-400 mb-1.5">CPF</label>
+                                        <input {...register('cpf')} onChange={(e) => { e.target.value = formatCPF(e.target.value); register('cpf').onChange(e); }} className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="000.000.000-00" maxLength={14} />
                                     </div>
-
-                                    {/* Endereço */}
                                     <div>
-                                        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                                            <MapPin className="w-5 h-5 text-purple-400" />
-                                            Endereço
-                                        </h3>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            <div className="md:col-span-2">
-                                                <label className="block text-sm font-medium text-slate-300 mb-2">
-                                                    CEP
-                                                </label>
-                                                <input
-                                                    {...register('cep')}
-                                                    onChange={handleCEPChange}
-                                                    type="text"
-                                                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                                                    placeholder="00000-000"
-                                                    maxLength={9}
-                                                />
-                                            </div>
-
-                                            <div className="md:col-span-2">
-                                                <label className="block text-sm font-medium text-slate-300 mb-2">
-                                                    Endereço
-                                                </label>
-                                                <input
-                                                    {...register('endereco')}
-                                                    type="text"
-                                                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                                                    placeholder="Rua, número, complemento"
-                                                />
-                                            </div>
-
-                                            <div>
-                                                <label className="block text-sm font-medium text-slate-300 mb-2">
-                                                    Cidade
-                                                </label>
-                                                <input
-                                                    {...register('cidade')}
-                                                    type="text"
-                                                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                                                    placeholder="Nome da cidade"
-                                                />
-                                            </div>
-
-                                            <div>
-                                                <label className="block text-sm font-medium text-slate-300 mb-2">
-                                                    Estado
-                                                </label>
-                                                <select
-                                                    {...register('estado')}
-                                                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all appearance-none"
-                                                >
-                                                    <option value="" className="bg-slate-800 text-white">Selecione</option>
-                                                    <option value="AC" className="bg-slate-800 text-white">Acre</option>
-                                                    <option value="AL" className="bg-slate-800 text-white">Alagoas</option>
-                                                    <option value="AP" className="bg-slate-800 text-white">Amapá</option>
-                                                    <option value="AM" className="bg-slate-800 text-white">Amazonas</option>
-                                                    <option value="BA" className="bg-slate-800 text-white">Bahia</option>
-                                                    <option value="CE" className="bg-slate-800 text-white">Ceará</option>
-                                                    <option value="DF" className="bg-slate-800 text-white">Distrito Federal</option>
-                                                    <option value="ES" className="bg-slate-800 text-white">Espírito Santo</option>
-                                                    <option value="GO" className="bg-slate-800 text-white">Goiás</option>
-                                                    <option value="MA" className="bg-slate-800 text-white">Maranhão</option>
-                                                    <option value="MT" className="bg-slate-800 text-white">Mato Grosso</option>
-                                                    <option value="MS" className="bg-slate-800 text-white">Mato Grosso do Sul</option>
-                                                    <option value="MG" className="bg-slate-800 text-white">Minas Gerais</option>
-                                                    <option value="PA" className="bg-slate-800 text-white">Pará</option>
-                                                    <option value="PB" className="bg-slate-800 text-white">Paraíba</option>
-                                                    <option value="PR" className="bg-slate-800 text-white">Paraná</option>
-                                                    <option value="PE" className="bg-slate-800 text-white">Pernambuco</option>
-                                                    <option value="PI" className="bg-slate-800 text-white">Piauí</option>
-                                                    <option value="RJ" className="bg-slate-800 text-white">Rio de Janeiro</option>
-                                                    <option value="RN" className="bg-slate-800 text-white">Rio Grande do Norte</option>
-                                                    <option value="RS" className="bg-slate-800 text-white">Rio Grande do Sul</option>
-                                                    <option value="RO" className="bg-slate-800 text-white">Rondônia</option>
-                                                    <option value="RR" className="bg-slate-800 text-white">Roraima</option>
-                                                    <option value="SC" className="bg-slate-800 text-white">Santa Catarina</option>
-                                                    <option value="SP" className="bg-slate-800 text-white">São Paulo</option>
-                                                    <option value="SE" className="bg-slate-800 text-white">Sergipe</option>
-                                                    <option value="TO" className="bg-slate-800 text-white">Tocantins</option>
-                                                </select>
-                                            </div>
-                                        </div>
+                                        <label className="block text-xs font-medium text-slate-400 mb-1.5">Telefone *</label>
+                                        <input {...register('telefone')} onChange={(e) => { e.target.value = formatTelefone(e.target.value); register('telefone').onChange(e); }} className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="(00) 00000-0000" maxLength={15} />
+                                        {errors.telefone && <p className="text-red-400 text-[10px] mt-1">{errors.telefone.message}</p>}
                                     </div>
-
                                     <div>
-                                        <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                                            <FileText className="w-5 h-5 text-orange-400" />
-                                            Observações
-                                        </h3>
-                                        <textarea
-                                            {...register('observacoes')}
-                                            rows={4}
-                                            className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
-                                            placeholder="Informações adicionais sobre o cliente..."
-                                        />
+                                        <label className="block text-xs font-medium text-slate-400 mb-1.5">E-mail</label>
+                                        <input {...register('email')} className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="cliente@email.com" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-400 mb-1.5">CEP</label>
+                                        <input {...register('cep')} onChange={handleCEPChange} className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="00000-000" maxLength={9} />
+                                    </div>
+                                    <div className="md:col-span-2">
+                                        <label className="block text-xs font-medium text-slate-400 mb-1.5">Endereço</label>
+                                        <input {...register('endereco')} className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="Rua, número, complemento" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-400 mb-1.5">Cidade</label>
+                                        <input {...register('cidade')} className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="Cidade" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-medium text-slate-400 mb-1.5">Data de Nascimento</label>
+                                        <input {...register('dataNascimento')} type="date" className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all" />
+                                    </div>
+                                    <div className="md:col-span-3">
+                                        <label className="block text-xs font-medium text-slate-400 mb-1.5">Observações</label>
+                                        <textarea {...register('observacoes')} rows={3} className="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-blue-500 outline-none transition-all resize-none" placeholder="Observações adicionais..." />
                                     </div>
                                 </div>
                             ) : (
-                                // Conteúdo da Aba Veículos
-                                <div className="space-y-6 animate-slide-up">
-                                    <div className="flex items-center justify-between mb-4">
-                                        <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                                            <Car className="w-5 h-5 text-blue-400" />
-                                            Veículos Cadastrados
-                                        </h3>
+                                <div className="space-y-4 animate-slide-up">
+                                    <div className="flex items-center justify-between">
+                                        <h3 className="text-sm font-semibold text-white flex items-center gap-2"><Car className="w-4 h-4 text-blue-400" /> Veículos</h3>
                                         {!isAddingVeiculo && (
-                                            <button
-                                                type="button"
-                                                onClick={() => setIsAddingVeiculo(true)}
-                                                className="px-4 py-2 bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 rounded-lg text-sm font-medium transition-colors border border-blue-500/30"
-                                            >
-                                                + Adicionar Veículo
-                                            </button>
+                                            <button type="button" onClick={() => setIsAddingVeiculo(true)} className="px-3 py-1.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-lg text-xs font-medium hover:bg-blue-500/20 transition-all">+ Novo Veículo</button>
                                         )}
                                     </div>
 
-                                    {/* Lista de Veículos */}
                                     {fields.length > 0 && !isAddingVeiculo && (
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            {fields.map((veiculo, index) => (
-                                                <div
-                                                    key={veiculo.id}
-                                                    onClick={() => handleEditVeiculo(index)}
-                                                    className="bg-white/5 border border-white/10 rounded-xl p-4 flex justify-between items-start group cursor-pointer hover:bg-white/10 transition-colors"
-                                                >
-                                                    <div className="flex gap-4">
-                                                        <div className="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center">
-                                                            <Car className="w-5 h-5 text-slate-400" />
-                                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                            {fields.map((veiculo: any, index) => (
+                                                <div key={veiculo.id} onClick={() => handleEditVeiculo(index)} className="bg-white/5 border border-white/10 rounded-xl p-3 flex justify-between items-center group cursor-pointer hover:bg-white/10 transition-all">
+                                                    <div className="flex gap-3 items-center">
+                                                        <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center"><Car className="w-4 h-4 text-blue-400" /></div>
                                                         <div>
-                                                            <h4 className="font-bold text-white">{veiculo.modelo}</h4>
-                                                            <p className="text-sm text-slate-400">{veiculo.marca} • {veiculo.cor}</p>
-                                                            <div className="flex gap-2 mt-1">
-                                                                <span className="text-xs bg-white/10 px-2 py-0.5 rounded text-slate-300">{veiculo.placa}</span>
-                                                                <span className="text-xs bg-white/10 px-2 py-0.5 rounded text-slate-300">{veiculo.ano}</span>
-                                                            </div>
+                                                            <h4 className="font-bold text-white text-sm">{veiculo.modelo}</h4>
+                                                            <p className="text-[10px] text-slate-400">{veiculo.marca} • {veiculo.placa}</p>
                                                         </div>
                                                     </div>
-                                                    <div className="flex gap-2">
-                                                        <button
-                                                            type="button"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                remove(index);
-                                                            }}
-                                                            className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                                                            title="Excluir Veículo"
-                                                        >
-                                                            <X className="w-4 h-4" />
-                                                        </button>
-                                                    </div>
+                                                    <button type="button" onClick={(e) => { e.stopPropagation(); remove(index); }} className="p-1.5 text-slate-500 hover:text-red-400 transition-colors"><X className="w-4 h-4" /></button>
                                                 </div>
                                             ))}
                                         </div>
                                     )}
 
-                                    {/* Form de Adicionar Veículo */}
                                     {(isAddingVeiculo || fields.length === 0) && (
-                                        <div className="bg-white/5 border border-white/10 rounded-xl p-6 animate-scale-in">
-                                            <h4 className="text-white font-medium mb-4">{editingVeiculoIndex !== null ? 'Editar Veículo' : (fields.length === 0 ? 'Adicionar Primeiro Veículo' : 'Dados do Veículo')}</h4>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                        <div className="bg-white/5 border border-white/10 rounded-2xl p-5 border-dashed border-blue-500/30">
+                                            <h4 className="text-white font-medium text-sm mb-4">{editingVeiculoIndex !== null ? 'Editando Veículo' : 'Dados do Veículo'}</h4>
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                                 <div>
-                                                    <label className="block text-sm font-medium text-slate-300 mb-2">Marca *</label>
+                                                    <label className="block text-[10px] font-medium text-slate-400 mb-1">Marca *</label>
                                                     <select
-                                                        {...registerVeiculo('marca')}
-                                                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all appearance-none"
+                                                        value={veiculoForm.marca}
+                                                        onChange={(e) => setVeiculoForm({ ...veiculoForm, marca: e.target.value })}
+                                                        className="w-full px-3 py-2 bg-slate-800 border border-white/10 rounded-lg text-white text-sm outline-none focus:ring-1 focus:ring-blue-500"
                                                     >
-                                                        <option value="" className="bg-slate-800 text-white">Selecione</option>
-                                                        {marcas.map((marca) => (
-                                                            <option key={marca} value={marca} className="bg-slate-800 text-white">
-                                                                {marca}
-                                                            </option>
-                                                        ))}
+                                                        <option value="">Selecione</option>
+                                                        {marcas.map(m => <option key={m} value={m}>{m}</option>)}
                                                     </select>
-                                                    {errorsVeiculo.marca && <p className="text-red-400 text-sm mt-1">{errorsVeiculo.marca.message}</p>}
                                                 </div>
-
                                                 <div>
-                                                    <label className="block text-sm font-medium text-slate-300 mb-2">Modelo *</label>
+                                                    <label className="block text-[10px] font-medium text-slate-400 mb-1">Modelo *</label>
                                                     <input
-                                                        {...registerVeiculo('modelo')}
-                                                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                                                        placeholder="Ex: Cerato"
-                                                    />
-                                                    {errorsVeiculo.modelo && <p className="text-red-400 text-sm mt-1">{errorsVeiculo.modelo.message}</p>}
-                                                </div>
-
-                                                <div>
-                                                    <label className="block text-sm font-medium text-slate-300 mb-2">Cor</label>
-                                                    <input
-                                                        {...registerVeiculo('cor')}
-                                                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                                                        placeholder="Ex: Prata"
+                                                        type="text"
+                                                        value={veiculoForm.modelo}
+                                                        onChange={(e) => setVeiculoForm({ ...veiculoForm, modelo: e.target.value })}
+                                                        className="w-full px-3 py-2 bg-slate-800 border border-white/10 rounded-lg text-white text-sm outline-none focus:ring-1 focus:ring-blue-500"
+                                                        placeholder="Ex: HB20"
                                                     />
                                                 </div>
-
                                                 <div>
-                                                    <label className="block text-sm font-medium text-slate-300 mb-2">Ano</label>
+                                                    <label className="block text-[10px] font-medium text-slate-400 mb-1">Cor</label>
                                                     <input
-                                                        {...registerVeiculo('ano')}
-                                                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                                                        placeholder="Ex: 2024"
+                                                        type="text"
+                                                        value={veiculoForm.cor}
+                                                        onChange={(e) => setVeiculoForm({ ...veiculoForm, cor: e.target.value })}
+                                                        className="w-full px-3 py-2 bg-slate-800 border border-white/10 rounded-lg text-white text-sm outline-none focus:ring-1 focus:ring-blue-500"
+                                                        placeholder="Ex: Preto"
                                                     />
                                                 </div>
-
                                                 <div>
-                                                    <label className="block text-sm font-medium text-slate-300 mb-2">Placa</label>
+                                                    <label className="block text-[10px] font-medium text-slate-400 mb-1">Ano</label>
                                                     <input
-                                                        {...registerVeiculo('placa')}
-                                                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                                                        placeholder="ABC-1234"
+                                                        type="text"
+                                                        value={veiculoForm.ano}
+                                                        onChange={(e) => setVeiculoForm({ ...veiculoForm, ano: e.target.value })}
+                                                        className="w-full px-3 py-2 bg-slate-800 border border-white/10 rounded-lg text-white text-sm outline-none focus:ring-1 focus:ring-blue-500"
+                                                        placeholder="2024"
                                                     />
                                                 </div>
-                                            </div>
-
-                                            <div className="flex gap-3 mt-6 justify-end">
-                                                {fields.length > 0 && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            setIsAddingVeiculo(false);
-                                                            setEditingVeiculoIndex(null);
-                                                            resetVeiculo();
-                                                        }}
-                                                        className="px-4 py-2 text-slate-300 hover:text-white transition-colors"
-                                                    >
-                                                        Cancelar
-                                                    </button>
-                                                )}
-                                                <button
-                                                    type="button"
-                                                    onClick={handleSaveVeiculoLocal}
-                                                    className="px-6 py-2 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 transition-colors"
-                                                >
-                                                    {editingVeiculoIndex !== null ? 'Salvar Alterações' : 'Adicionar Veículo'}
-                                                </button>
+                                                <div>
+                                                    <label className="block text-[10px] font-medium text-slate-400 mb-1">Placa</label>
+                                                    <input
+                                                        type="text"
+                                                        value={veiculoForm.placa}
+                                                        onChange={(e) => setVeiculoForm({ ...veiculoForm, placa: e.target.value.toUpperCase() })}
+                                                        className="w-full px-3 py-2 bg-slate-800 border border-white/10 rounded-lg text-white text-sm outline-none focus:ring-1 focus:ring-blue-500"
+                                                        placeholder="ABC1D23"
+                                                    />
+                                                </div>
+                                                <div className="flex items-end gap-2">
+                                                    <button type="button" onClick={() => { setIsAddingVeiculo(false); setEditingVeiculoIndex(null); }} className="flex-1 px-3 py-2 bg-white/5 text-slate-400 rounded-lg text-xs hover:bg-white/10 transition-all">Cancelar</button>
+                                                    <button type="button" onClick={handleSaveVeiculoLocal} className="flex-[2] px-3 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-500 shadow-lg shadow-blue-500/20 transition-all">Salvar Veículo</button>
+                                                </div>
                                             </div>
                                         </div>
                                     )}
@@ -695,43 +451,21 @@ export default function ClienteForm({ onClose, onSave, initialData }: ClienteFor
                         </div>
                     </form>
 
-                    {/* Footer */}
-                    <div className="border-t border-white/10 p-6 bg-white/5 flex-shrink-0">
-                        <div className="flex gap-3 justify-end">
-                            <button
-                                type="button"
-                                onClick={onClose}
-                                className="px-6 py-3 bg-white/5 border border-white/10 text-white font-semibold rounded-xl hover:bg-white/10 transition-all"
-                            >
-                                Cancelar
-                            </button>
-                            <button
-                                onClick={handleSubmit(onSubmit, (errors) => {
-                                    console.error('Erros de validação:', errors);
-                                    const missingFields = Object.keys(errors).join(', ');
-                                    setToast({
-                                        isOpen: true,
-                                        type: 'warning',
-                                        title: 'Campos Obrigatórios',
-                                        message: `Por favor, verifique os campos: ${missingFields}`
-                                    });
-                                })}
-                                disabled={isSubmitting}
-                                className="px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-500/30 flex items-center gap-2"
-                            >
-                                {isSubmitting ? (
-                                    <>
-                                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                        Salvando...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Save className="w-5 h-5" />
-                                        Salvar Cliente
-                                    </>
-                                )}
-                            </button>
-                        </div>
+                    {/* Sticky Footer */}
+                    <div className="border-t border-white/10 p-5 bg-slate-900/50 flex flex-shrink-0 justify-end gap-3 backdrop-blur-md">
+                        <button type="button" onClick={onClose} className="px-6 py-2.5 bg-white/5 border border-white/10 text-white font-semibold rounded-xl hover:bg-white/10 transition-all">Fechar</button>
+                        <button
+                            type="button"
+                            disabled={isSubmitting}
+                            onClick={handleSubmit(onSubmit, (err) => {
+                                console.error('Erro de validação:', err);
+                                setToast({ isOpen: true, type: 'warning', title: 'Campos Inválidos', message: 'Verifique se nome e telefone estão corretos.' });
+                            })}
+                            className="px-8 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-bold rounded-xl hover:from-blue-600 hover:to-cyan-600 disabled:opacity-50 shadow-xl shadow-blue-500/20 flex items-center gap-2 transition-all active:scale-95"
+                        >
+                            {isSubmitting ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save className="w-5 h-5" />}
+                            {initialData ? 'Atualizar Cliente' : 'Cadastrar Cliente'}
+                        </button>
                     </div>
                 </div>
             </div>
