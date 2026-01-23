@@ -133,10 +133,7 @@ export default function LoginPage() {
               </div>
 
               <div className="group">
-                <div className="flex justify-between mb-2">
-                  <label className="block text-sm font-medium text-slate-400 group-focus-within:text-blue-400 transition-colors">Senha</label>
-                  <a href="#" className="text-sm text-blue-400 hover:text-blue-300 transition-colors">Esqueceu?</a>
-                </div>
+                <label className="block text-sm font-medium text-slate-400 mb-2 group-focus-within:text-blue-400 transition-colors">Senha</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
                     <Lock className="w-6 h-6 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
@@ -159,6 +156,9 @@ export default function LoginPage() {
                     {showPassword ? <EyeOff className="w-6 h-6" /> : <Eye className="w-6 h-6" />}
                   </button>
                 </div>
+                <div className="flex justify-end mt-2">
+                  <a href="#" className="text-sm text-blue-400 hover:text-blue-300 transition-colors">Esqueceu sua senha?</a>
+                </div>
               </div>
             </div>
 
@@ -179,18 +179,8 @@ export default function LoginPage() {
                 </>
               )}
             </button>
-
-            <div className="text-center">
-              <span className="text-slate-500">Ainda não tem conta? </span>
-              <button
-                type="button"
-                onClick={() => router.push('/register')}
-                className="text-white hover:text-blue-400 font-semibold transition-colors"
-              >
-                Criar conta agora
-              </button>
-            </div>
           </form>
+
         </div>
       </div>
     </div>
