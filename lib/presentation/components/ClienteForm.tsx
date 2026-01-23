@@ -56,13 +56,13 @@ const formatDateForInput = (value?: string) => {
 };
 
 const veiculoSchema = z.object({
-    marca: z.string().optional().or(z.literal('')),
-    modelo: z.string().optional().or(z.literal('')),
-    cor: z.string().optional().or(z.literal('')),
-    ano: z.string().optional().or(z.literal('')),
-    placa: z.string().optional().or(z.literal('')),
-    id: z.string().optional(), // Allow ID to pass through
-});
+    marca: z.string().optional().nullable().or(z.literal('')),
+    modelo: z.string().optional().nullable().or(z.literal('')),
+    cor: z.string().optional().nullable().or(z.literal('')),
+    ano: z.string().optional().nullable().or(z.literal('')),
+    placa: z.string().optional().nullable().or(z.literal('')),
+    id: z.string().optional().nullable(),
+}).passthrough(); // Allow unknown fields like createdAt, updatedAt
 
 const clienteSchema = z.object({
     // Dados Pessoais
