@@ -5,11 +5,17 @@ export const dynamic = 'force-dynamic';
 export default async function TestDbPage() {
     const results = [];
 
-    // URL 1: Conexão Direta (5432)
-    const directUrl = "postgres://postgres.bkhtemypttswlkluaort:Z4PKLWQY8J9gF6Kp@db.bkhtemypttswlkluaort.supabase.co:5432/postgres?connect_timeout=10";
+    // VARIAÇÃO 1: Pooler Tradicional (6543) com PgBouncer
+    const v1 = "postgres://postgres.bkhtemypttswlkluaort:Z4PKLWQY8J9gF6Kp@aws-0-sa-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1";
 
-    // URL 2: Conexão Pooler (6543) - Recomendada para Serverless
-    const poolerUrl = "postgres://postgres.bkhtemypttswlkluaort:Z4PKLWQY8J9gF6Kp@aws-0-sa-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true&connect_timeout=10";
+    // VARIAÇÃO 2: Pooler Sem SSL (Supabase às vezes precisa disso no modo Transaction)
+    const v2 = "postgres://postgres.bkhtemypttswlkluaort:Z4PKLWQY8J9gF6Kp@aws-0-sa-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true&sslmode=disable";
+
+    // VARIAÇÃO 3: URL Direta na 5432 (Padrão)
+    const v3 = "postgres://postgres.bkhtemypttswlkluaort:Z4PKLWQY8J9gF6Kp@db.bkhtemypttswlkluaort.supabase.co:5432/postgres?connect_timeout=15";
+
+    // VARIAÇÃO 4: URL Direta na 5432 (IPv4 Workaround - tenta resolver DNS pooler na 5432)
+    const v4 = "postgres://postgres.bkhtemypttswlkluaort:Z4PKLWQY8J9gF6Kp@aws-0-sa-east-1.pooler.supabase.com:5432/postgres?sslmode=require";
 
     async function testConnection(name: string, url: string) {
         let status = 'pending';
@@ -17,18 +23,20 @@ export default async function TestDbPage() {
         const start = Date.now();
 
         try {
-            // Instanciar cliente isolado para este teste
             const client = new PrismaClient({
                 datasources: { db: { url } },
-                log: []
+                log: [] // silenciar logs para não poluir
             });
 
-            // Tentar conectar e contar
-            await client.usuario.count();
-            await client.$disconnect();
+            // Timeout de 10s
+            const count = await Promise.race([
+                client.usuario.count(),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Manual Timeout 10s')), 10000))
+            ]);
 
+            await client.$disconnect();
             status = 'SUCCESS';
-            detail = `${Date.now() - start}ms`;
+            detail = `Tempo: ${Date.now() - start}ms | Count: ${count}`;
         } catch (e: any) {
             status = 'FAILED';
             detail = e.message || JSON.stringify(e);
@@ -36,34 +44,33 @@ export default async function TestDbPage() {
         return { name, status, detail, url_masked: url.replace(/:[^:]+@/, ':***@') };
     }
 
-    results.push(await testConnection('DIRECT (Port 5432)', directUrl));
-    results.push(await testConnection('POOLER (Port 6543)', poolerUrl));
+    results.push(await testConnection('1. Pooler (6543) + PGBouncer', v1));
+    results.push(await testConnection('2. Pooler (6543) NO SSL', v2));
+    results.push(await testConnection('3. Direct (5432) Standard', v3));
+    results.push(await testConnection('4. Pooler Host on 5432', v4));
 
     return (
-        <div className="p-10 font-mono text-sm max-w-4xl mx-auto">
-            <h1 className="text-2xl font-bold mb-6">Diagnóstico de Conexão Vercel -&gt; Supabase</h1>
+        <div className="p-10 font-mono text-sm max-w-4xl mx-auto bg-gray-50 min-h-screen">
+            <h1 className="text-2xl font-bold mb-6 text-center">Diagnóstico Avançado de Conexão</h1>
 
             <div className="space-y-4">
                 {results.map((res, i) => (
-                    <div key={i} className={`p-4 rounded border ${res.status === 'SUCCESS' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                    <div key={i} className={`p-4 rounded border shadow-sm ${res.status === 'SUCCESS' ? 'bg-green-100 border-green-400' : 'bg-white border-gray-300'}`}>
                         <div className="flex justify-between items-center mb-2">
                             <span className="font-bold text-lg">{res.name}</span>
-                            <span className={`px-2 py-1 rounded text-xs font-bold ${res.status === 'SUCCESS' ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}`}>
+                            <span className={`px-3 py-1 rounded text-xs font-bold ${res.status === 'SUCCESS' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
                                 {res.status}
                             </span>
                         </div>
-                        <div className="text-xs text-gray-500 mb-2">{res.url_masked}</div>
-                        <pre className="whitespace-pre-wrap text-xs bg-white p-2 rounded border overflow-x-auto">
+                        <div className="text-[10px] text-gray-500 mb-2 font-mono break-all">{res.url_masked}</div>
+                        <pre className="whitespace-pre-wrap text-xs bg-gray-900 text-gray-100 p-3 rounded overflow-x-auto">
                             {res.detail}
                         </pre>
                     </div>
                 ))}
             </div>
 
-            <div className="mt-8 p-4 bg-gray-100 rounded">
-                <p><strong>Ambiente:</strong> {process.env.NODE_ENV}</p>
-                <p><strong>Region:</strong> {process.env.VERCEL_REGION || 'N/A'}</p>
-            </div>
+            <p className="text-center mt-10 text-gray-400">Ambiente: {process.env.NODE_ENV}</p>
         </div>
     );
 }
