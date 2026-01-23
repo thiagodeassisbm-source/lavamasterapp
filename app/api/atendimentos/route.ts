@@ -33,7 +33,10 @@ export async function GET(request: NextRequest) {
                 ...a,
                 clienteNome: a.cliente?.nome || 'Cliente Desconhecido',
                 veiculo: veiculoStr,
-                servicos: a.servicos?.map((s: any) => s.servico?.nome).filter(Boolean) || [],
+                servicos: a.servicos?.map((s: any) => ({
+                    id: s.servicoId,
+                    nome: s.servico?.nome
+                })).filter((s: any) => !!s.nome) || [],
                 totalAgendamento: Number(a.valorTotal),
                 valorTotal: Number(a.valorTotal)
             };

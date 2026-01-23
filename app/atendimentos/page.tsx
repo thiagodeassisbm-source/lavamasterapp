@@ -231,10 +231,10 @@ export default function AtendimentosPage() {
 
                                 {/* Services */}
                                 <div className="space-y-2 mb-6 flex-1">
-                                    {item.servicos.map((servico, idx) => (
+                                    {item.servicos.map((servico: any, idx) => (
                                         <div key={idx} className="flex items-center gap-2 text-sm text-slate-300 bg-black/20 p-2 rounded-lg border border-white/5">
                                             <CheckCircle className="w-3 h-3 text-green-500/50" />
-                                            {servico}
+                                            {typeof servico === 'string' ? servico : (servico.nome || 'Serviço')}
                                         </div>
                                     ))}
                                 </div>

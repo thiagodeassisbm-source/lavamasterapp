@@ -125,15 +125,18 @@ export default function NovoAtendimentoPage() {
                                 }
                             }
 
-                            // Populate cart (using servicosNomes or servicos array from DB)
-                            const servicosNamesToFind = atendimento.servicosNomes ||
-                                (atendimento.servicos ? atendimento.servicos.map((s: any) => s.servico?.nome) : []);
-
-                            if (servicosNamesToFind && servicosNamesToFind.length > 0) {
-                                const items = servicosNamesToFind.map((nomeServico: string) =>
-                                    servicosData.find(s => s.nome === nomeServico)
-                                ).filter((s: any) => !!s) as Servico[];
-                                setCarrinho(items);
+                            // Populate cart (using servicos array from API which can be strings or objects with id/nome)
+                            if (atendimento.servicos && Array.isArray(atendimento.servicos)) {
+                                const matchedItems = atendimento.servicos.map((s: any) => {
+                                    if (typeof s === 'string') {
+                                        return servicosData.find(item => item.nome === s);
+                                    } else {
+                                        // Match by ID primarily, fallback to Name
+                                        return servicosData.find(item => item.id === s.id) ||
+                                            servicosData.find(item => item.nome === s.nome);
+                                    }
+                                }).filter(Boolean) as Servico[];
+                                setCarrinho(matchedItems);
                             }
 
                             // Populate other fields
