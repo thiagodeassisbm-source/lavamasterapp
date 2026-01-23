@@ -48,10 +48,10 @@ export async function POST(request: Request) {
 
         if (!emailSent) {
             console.error('[AUTH] Falha ao enviar email via SMTP');
-            // Optionally return an error, but usually we don't want to expose infra errors
+            return NextResponse.json({ error: 'Falha ao enviar email. Verifique logs do servidor.' }, { status: 500 });
         }
 
-        return NextResponse.json({ message: 'Email enviado com sucesso (ou aguardando processamento SMTP)' });
+        return NextResponse.json({ message: 'Email enviado com sucesso e processado pelo SMTP.' });
 
     } catch (error) {
         console.error('Erro no forgot-password:', error);
