@@ -170,7 +170,7 @@ export default function LoginPage() {
                       </button>
                     </div>
                     <div className="flex justify-end">
-                      <a href="#" className="text-sm text-slate-500 hover:text-blue-400 transition-colors">Esqueceu sua senha?</a>
+                      <a href="/forgot-password" className="text-sm text-slate-500 hover:text-blue-400 transition-colors">Esqueceu sua senha?</a>
                     </div>
                   </div>
                 </div>
