@@ -48,31 +48,26 @@ export default function AgendamentoForm({ onClose, onSave, initialData }: Agenda
         setToast(prev => ({ ...prev, isOpen: false }));
     };
 
-    // Mocks de dados (Sincronizado com OrcamentoForm)
+    // Dados reais da API
     const [clientes, setClientes] = useState<any[]>([]);
+    const [servicosDisponiveis, setServicosDisponiveis] = useState<any[]>([]);
 
     useEffect(() => {
-        const fetchClientes = async () => {
+        const fetchData = async () => {
             try {
-                const res = await fetch('/api/clientes');
-                if (res.ok) {
-                    const data = await res.json();
-                    setClientes(data);
-                }
+                const [clientesRes, servicosRes] = await Promise.all([
+                    fetch('/api/clientes'),
+                    fetch('/api/servicos')
+                ]);
+
+                if (clientesRes.ok) setClientes(await clientesRes.json());
+                if (servicosRes.ok) setServicosDisponiveis(await servicosRes.json());
             } catch (error) {
-                console.error('Erro ao buscar clientes:', error);
+                console.error('Erro ao buscar dados:', error);
             }
         };
-        fetchClientes();
+        fetchData();
     }, []);
-
-    const servicosDisponiveis = [
-        { id: '1', nome: 'Lavagem Completa', preco: 80 },
-        { id: '2', nome: 'Polimento', preco: 250 },
-        { id: '3', nome: 'Cristalização', preco: 350 },
-        { id: '4', nome: 'Vitrificação', preco: 800 },
-        { id: '5', nome: 'Higienização Interna', preco: 150 },
-    ];
 
     const {
         register,
@@ -92,7 +87,7 @@ export default function AgendamentoForm({ onClose, onSave, initialData }: Agenda
         },
     });
 
-    const [selectedCliente, setSelectedCliente] = useState<typeof clientes[0] | null>(null);
+    const [selectedCliente, setSelectedCliente] = useState<any | null>(null);
 
     // Tentamos reconstruir o veículo selecionado se estivermos editando
     const [selectedVeiculo, setSelectedVeiculo] = useState<any>(null);
@@ -112,7 +107,7 @@ export default function AgendamentoForm({ onClose, onSave, initialData }: Agenda
                 // O AgendaPage passa 'veiculo' como string "Modelo - Placa"
                 const veiculoStr = (initialData as any).veiculo;
                 if (veiculoStr) {
-                    const foundVeiculo = cliente.veiculos.find((v: any) =>
+                    const foundVeiculo = cliente.veiculos?.find((v: any) =>
                         `${v.modelo} - ${v.placa}` === veiculoStr
                     );
                     if (foundVeiculo) {
@@ -120,13 +115,11 @@ export default function AgendamentoForm({ onClose, onSave, initialData }: Agenda
                     }
                 }
             } else if (initialData.clienteId) {
-                // Se não encontrou o cliente na lista, mas tem ID (caso de mock ou cliente deletado/inativo)
                 setValue('clienteId', initialData.clienteId);
             }
 
             // 3. Mapear Serviços (Nomes -> IDs)
-            // O AgendaPage salva os nomes dos serviços, mas o form usa IDs
-            if (initialData.servicos && Array.isArray(initialData.servicos)) {
+            if (initialData.servicos && Array.isArray(initialData.servicos) && servicosDisponiveis.length > 0) {
                 const mappedIds = servicosDisponiveis
                     .filter(s => initialData.servicos!.includes(s.nome) || initialData.servicos!.includes(s.id))
                     .map(s => s.id);
@@ -138,7 +131,7 @@ export default function AgendamentoForm({ onClose, onSave, initialData }: Agenda
                 setValue('status', initialData.status as any);
             }
         }
-    }, [clientes, initialData, setValue]);
+    }, [clientes, servicosDisponiveis, initialData, setValue]);
 
     const handleClienteChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const clienteId = e.target.value;
@@ -147,7 +140,7 @@ export default function AgendamentoForm({ onClose, onSave, initialData }: Agenda
         if (cliente) {
             setSelectedCliente(cliente);
             // Se tiver apenas um veículo, seleciona automaticamente
-            if (cliente.veiculos.length === 1) {
+            if (cliente.veiculos?.length === 1) {
                 handleVeiculoSelect(cliente.veiculos[0]);
             } else {
                 setSelectedVeiculo(null);
@@ -183,7 +176,7 @@ export default function AgendamentoForm({ onClose, onSave, initialData }: Agenda
     const calcularTotal = () => {
         return servicosDisponiveis
             .filter(s => servicosSelecionados.includes(s.id))
-            .reduce((total, s) => total + s.preco, 0);
+            .reduce((total, s) => total + (Number(s.preco) || 0), 0);
     };
 
     const [isNewClient, setIsNewClient] = useState(false);
@@ -210,19 +203,27 @@ export default function AgendamentoForm({ onClose, onSave, initialData }: Agenda
                 veiculo = `${data.veiculoModelo} - ${data.veiculoPlaca || ''}`;
             }
 
-            // Mapear IDs dos serviços para nomes
-            const servicosNomes = data.servicos.map(id => {
+            // Mapear detalhes dos serviços selecionados
+            const servicosDetalhes = data.servicos.map(id => {
                 const s = servicosDisponiveis.find(sd => sd.id === id);
-                return s ? s.nome : id;
+                return {
+                    servicoId: id,
+                    nome: s ? s.nome : 'Serviço',
+                    preco: s ? Number(s.preco) : 0
+                };
             });
 
+            const valorTotal = calcularTotal();
+
             const dataToSave = {
-                ...data,
+                clienteId,
                 clienteNome,
-                clienteId, // Pode ser undefined se for novo
+                dataHora: data.dataHora,
                 status: data.status,
+                observacoes: data.observacoes,
                 veiculo: veiculo,
-                servicos: servicosNomes,
+                servicos: servicosDetalhes,
+                valorTotal: valorTotal
             };
 
             await onSave(dataToSave as any);

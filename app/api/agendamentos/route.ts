@@ -5,7 +5,7 @@ import { getAuthContext } from '@/lib/auth';
 export async function GET(request: NextRequest) {
     try {
         const ctx = await getAuthContext();
-        if (!ctx) {
+        if (!ctx || !ctx.empresaId) {
             return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
         }
 
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
             }
         });
 
-        const formatted = agendamentos.map(a => ({
+        const formatted = agendamentos.map((a: any) => ({
             id: a.id,
             clienteNome: a.cliente?.nome || 'Cliente Desconhecido',
             clienteId: a.clienteId,
@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
     try {
         const ctx = await getAuthContext();
-        if (!ctx) {
+        if (!ctx || !ctx.empresaId) {
             return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
         }
 
@@ -68,16 +68,14 @@ export async function POST(request: NextRequest) {
             }
         });
 
-        // @ts-ignore
-        if (empresa && empresa.limiteAgendamentos > 0 && empresa._count.agendamentos >= empresa.limiteAgendamentos) {
+        if (empresa && empresa.limiteAgendamentos > 0 && (empresa as any)._count.agendamentos >= empresa.limiteAgendamentos) {
             return NextResponse.json(
-                // @ts-ignore
                 { error: `Limite de agendamentos atingido. Seu plano permite apenas ${empresa.limiteAgendamentos} agendamentos.` },
                 { status: 403 }
             );
         }
 
-        let { clienteId, clienteNome, dataHora, status, observacoes, servicos, veiculo } = body;
+        let { clienteId, clienteNome, dataHora, status, observacoes, servicos, valorTotal, veiculoId } = body;
 
         // 1. Tratar Cliente (Existente ou Novo)
         if (!clienteId && clienteNome) {
@@ -98,13 +96,31 @@ export async function POST(request: NextRequest) {
 
         const date = new Date(dataHora);
 
+        // Se o valorTotal não vier, calculamos a soma dos serviços
+        const total = valorTotal || servicos?.reduce((acc: number, s: any) => acc + (s.preco || 0), 0) || 0;
+
         const novoAgendamento = await prisma.agendamento.create({
             data: {
                 empresaId: ctx.empresaId,
                 clienteId: clienteId,
+                veiculoId: veiculoId || undefined,
                 dataHora: date,
                 status: status || 'agendado',
                 observacoes: observacoes,
+                valorTotal: total,
+                servicos: {
+                    create: servicos?.map((s: any) => ({
+                        servicoId: s.servicoId,
+                        quantidade: 1,
+                        valorUnitario: s.preco || 0,
+                        valorTotal: s.preco || 0
+                    }))
+                }
+            },
+            include: {
+                servicos: {
+                    include: { servico: true }
+                }
             }
         });
 
