@@ -80,7 +80,7 @@ const clienteSchema = z.object({
     observacoes: z.string().optional(),
 
     // Lista de Veículos
-    veiculos: z.array(veiculoSchema).optional(),
+    veiculos: z.array(z.any()).optional(),
 });
 
 type ClienteFormData = z.infer<typeof clienteSchema>;
