@@ -101,10 +101,9 @@ export default function NovoAtendimentoPage() {
                 const atendimentoId = searchParams.get('id');
 
                 if (atendimentoId) {
-                    const resAtendimento = await fetch('/api/atendimentos');
+                    const resAtendimento = await fetch(`/api/atendimentos?id=${atendimentoId}`);
                     if (resAtendimento.ok) {
-                        const atendimentos = await resAtendimento.json();
-                        const atendimento = atendimentos.find((a: any) => a.id === atendimentoId);
+                        const atendimento = await resAtendimento.json();
 
                         if (atendimento) {
                             setEditingId(atendimento.id);
@@ -125,17 +124,28 @@ export default function NovoAtendimentoPage() {
                                 }
                             }
 
-                            // Populate cart (using servicos array from API which can be strings or objects with id/nome)
+                            // 3. Populate Cart/Services (Robust Matching)
                             if (atendimento.servicos && Array.isArray(atendimento.servicos)) {
-                                const matchedItems = atendimento.servicos.map((s: any) => {
-                                    if (typeof s === 'string') {
-                                        return servicosData.find(item => item.nome === s);
-                                    } else {
-                                        // Match by ID primarily, fallback to Name
-                                        return servicosData.find(item => item.id === s.id) ||
-                                            servicosData.find(item => item.nome === s.nome);
+                                console.log('DEBUG: Serviços brutos do atendimento:', atendimento.servicos);
+                                console.log('DEBUG: Catálogo de serviços disponível:', servicosData);
+
+                                const matchedItems: Servico[] = [];
+
+                                atendimento.servicos.forEach((atendServ: any) => {
+                                    // Tenta encontrar o serviço no catálogo por ID ou por Nome
+                                    const found = servicosData.find(s => {
+                                        if (typeof atendServ === 'string') {
+                                            return s.nome === atendServ || s.id === atendServ;
+                                        }
+                                        return s.id === atendServ.id || s.nome === atendServ.nome;
+                                    });
+
+                                    if (found) {
+                                        matchedItems.push(found);
                                     }
-                                }).filter(Boolean) as Servico[];
+                                });
+
+                                console.log('DEBUG: Serviços encontrados e prontos para o carrinho:', matchedItems);
                                 setCarrinho(matchedItems);
                             }
 

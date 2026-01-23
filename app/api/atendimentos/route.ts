@@ -9,6 +9,38 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
         }
 
+        const { searchParams } = new URL(request.url);
+        const id = searchParams.get('id');
+
+        if (id) {
+            const atendimento = await prisma.agendamento.findUnique({
+                where: { id, empresaId: ctx.empresaId },
+                include: {
+                    cliente: { include: { veiculos: true } },
+                    veiculo: true,
+                    servicos: { include: { servico: true } }
+                }
+            });
+
+            if (!atendimento) {
+                return NextResponse.json({ error: 'Não encontrado' }, { status: 404 });
+            }
+
+            const formatted = {
+                ...atendimento,
+                clienteNome: atendimento.cliente?.nome || 'Cliente Desconhecido',
+                veiculo: atendimento.veiculo ? `${atendimento.veiculo.modelo} - ${atendimento.veiculo.placa || ''}` : (atendimento.cliente?.veiculos?.[0] ? `${atendimento.cliente.veiculos[0].modelo} - ${atendimento.cliente.veiculos[0].placa || ''}` : ''),
+                servicos: atendimento.servicos?.map((s: any) => ({
+                    id: s.servicoId,
+                    nome: s.servico?.nome
+                })).filter((s: any) => !!s.nome) || [],
+                totalAgendamento: Number(atendimento.valorTotal),
+                valorTotal: Number(atendimento.valorTotal)
+            };
+
+            return NextResponse.json(formatted);
+        }
+
         // Retorna agendamentos filtrados por empresa
         const atendimentos = await prisma.agendamento.findMany({
             where: { empresaId: ctx.empresaId },
@@ -62,26 +94,28 @@ export async function POST(request: NextRequest) {
         const body = await request.json();
         const { clienteId, veiculoId, dataHora, status, observacoes, valorTotal, servicos, desconto, formaPagamento } = body;
 
+        const createData: any = {
+            empresaId: ctx.empresaId,
+            clienteId: clienteId,
+            veiculoId: veiculoId,
+            dataHora: dataHora ? new Date(dataHora) : new Date(),
+            status: status || 'em_andamento',
+            observacoes: observacoes,
+            valorTotal: Number(valorTotal) || 0,
+            desconto: Number(desconto) || 0,
+            formaPagamento: formaPagamento,
+            servicos: {
+                create: servicos?.map((s: any) => ({
+                    servicoId: s.servicoId,
+                    quantidade: 1,
+                    valorUnitario: Number(s.preco) || 0,
+                    valorTotal: Number(s.preco) || 0
+                }))
+            }
+        };
+
         const novoAtendimento = await prisma.agendamento.create({
-            data: {
-                empresaId: ctx.empresaId,
-                clienteId: clienteId,
-                veiculoId: veiculoId,
-                dataHora: dataHora ? new Date(dataHora) : new Date(),
-                status: status || 'em_andamento',
-                observacoes: observacoes,
-                valorTotal: Number(valorTotal) || 0,
-                desconto: Number(desconto) || 0,
-                formaPagamento: formaPagamento,
-                servicos: {
-                    create: servicos?.map((s: any) => ({
-                        servicoId: s.servicoId,
-                        quantidade: 1,
-                        valorUnitario: Number(s.preco) || 0,
-                        valorTotal: Number(s.preco) || 0
-                    }))
-                }
-            },
+            data: createData,
             include: {
                 cliente: true,
                 servicos: { include: { servico: true } }
@@ -122,18 +156,20 @@ export async function PUT(request: NextRequest) {
         }
 
         // Atualização básica
+        const updateData: any = {
+            clienteId: clienteId || undefined,
+            veiculoId: veiculoId || undefined,
+            status: status,
+            observacoes: observacoes,
+            valorTotal: valorTotal !== undefined ? Number(valorTotal) : undefined,
+            desconto: desconto !== undefined ? Number(desconto) : undefined,
+            formaPagamento: formaPagamento,
+            dataHora: dataHora ? new Date(dataHora) : undefined
+        };
+
         const atendimentoAtualizado = await prisma.agendamento.update({
             where: { id },
-            data: {
-                clienteId: clienteId || undefined,
-                veiculoId: veiculoId || undefined,
-                status: status,
-                observacoes: observacoes,
-                valorTotal: valorTotal !== undefined ? Number(valorTotal) : undefined,
-                desconto: desconto !== undefined ? Number(desconto) : undefined,
-                formaPagamento: formaPagamento,
-                dataHora: dataHora ? new Date(dataHora) : undefined
-            }
+            data: updateData
         });
 
         // Atualização de serviços
