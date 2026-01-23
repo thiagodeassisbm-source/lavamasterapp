@@ -1,72 +1,76 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs/promises';
-import path from 'path';
-
-const DB_FILE = path.join(process.cwd(), 'local-db.json');
-
-async function readLocalDb() {
-    try {
-        const data = await fs.readFile(DB_FILE, 'utf-8');
-        return JSON.parse(data);
-    } catch {
-        return {};
-    }
-}
-
-async function writeLocalDb(data: any) {
-    await fs.writeFile(DB_FILE, JSON.stringify(data, null, 2));
-}
+import { prisma } from '@/lib/prisma';
+import { getAuthContext } from '@/lib/auth';
 
 export async function PUT(
     request: Request,
-    context: { params: Promise<{ id: string }> }
+    { params }: { params: { id: string } }
 ) {
     try {
-        const { id } = await context.params;
-        const body = await request.json();
-        const db = await readLocalDb();
+        const ctx = await getAuthContext();
+        if (!ctx) {
+            return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+        }
 
-        if (!db.servicos) return NextResponse.json({ error: 'Serviço não encontrado' }, { status: 404 });
+        const id = params.id;
+        const data = await request.json();
 
-        const index = db.servicos.findIndex((s: any) => s.id === id);
-        if (index === -1) return NextResponse.json({ error: 'Serviço não encontrado' }, { status: 404 });
-
-        const updatedServico = {
-            ...db.servicos[index],
-            ...body,
-            updatedAt: new Date(),
-        };
-
-        db.servicos[index] = updatedServico;
-        await writeLocalDb(db);
+        // Atualiza o serviço no banco de dados
+        const updatedServico = await prisma.servico.update({
+            where: {
+                id,
+                empresaId: ctx.empresaId || undefined // Segurança: garante que pertence à empresa
+            },
+            data: {
+                nome: data.nome,
+                descricao: data.descricao,
+                preco: parseFloat(data.preco) || 0,
+                duracao: parseInt(data.duracao) || 30,
+                categoria: data.categoria,
+            },
+        });
 
         return NextResponse.json(updatedServico);
     } catch (error: any) {
+        console.error('Error updating service:', error);
+        if (error.code === 'P2025') {
+            return NextResponse.json({ error: 'Serviço não encontrado' }, { status: 404 });
+        }
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
 
 export async function DELETE(
     request: Request,
-    context: { params: Promise<{ id: string }> }
+    { params }: { params: { id: string } }
 ) {
     try {
-        const { id } = await context.params;
-        const db = await readLocalDb();
-
-        if (!db.servicos) return NextResponse.json({ error: 'Serviço não encontrado' }, { status: 404 });
-
-        const initialLength = db.servicos.length;
-        db.servicos = db.servicos.filter((s: any) => s.id !== id);
-
-        if (db.servicos.length === initialLength) {
-            return NextResponse.json({ error: 'Serviço não encontrado' }, { status: 404 });
+        const ctx = await getAuthContext();
+        if (!ctx) {
+            return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
         }
 
-        await writeLocalDb(db);
+        const id = params.id;
+
+        // Marcamos como inativo em vez de deletar para manter histórico se necessário,
+        // mas o sistema atual parece filtrar por ativo: true.
+        // Se preferir deletar fisicamente:
+        await prisma.servico.update({
+            where: {
+                id,
+                empresaId: ctx.empresaId || undefined
+            },
+            data: {
+                ativo: false
+            }
+        });
 
         return NextResponse.json({ success: true });
     } catch (error: any) {
+        console.error('Error deleting service:', error);
+        if (error.code === 'P2025') {
+            return NextResponse.json({ error: 'Serviço não encontrado' }, { status: 404 });
+        }
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
