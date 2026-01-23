@@ -5,17 +5,27 @@ export const dynamic = 'force-dynamic';
 export default async function TestDbPage() {
     const results = [];
 
-    // VARIAÇÃO 1: Pooler Tradicional (6543) com PgBouncer
-    const v1 = "postgres://postgres.bkhtemypttswlkluaort:Z4PKLWQY8J9gF6Kp@aws-0-sa-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1";
+    // Senha e Host
+    const PASS = "Z4PKLWQY8J9gF6Kp";
+    const HOST_POOLER = "aws-0-sa-east-1.pooler.supabase.com"; // Endereço Pooler
+    const HOST_DIRECT = "db.bkhtemypttswlkluaort.supabase.co"; // Endereço Direto
+    const TENANT = "bkhtemypttswlkluaort";
 
-    // VARIAÇÃO 2: Pooler Sem SSL (Supabase às vezes precisa disso no modo Transaction)
-    const v2 = "postgres://postgres.bkhtemypttswlkluaort:Z4PKLWQY8J9gF6Kp@aws-0-sa-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true&sslmode=disable";
+    // VARIAÇÃO 1: Usuário Padrão (Falhou antes com 'Tenant or user not found')
+    // postgres.TENANT
+    const v1 = `postgres://postgres.${TENANT}:${PASS}@${HOST_POOLER}:6543/postgres?pgbouncer=true&connection_limit=1`;
 
-    // VARIAÇÃO 3: URL Direta na 5432 (Padrão)
-    const v3 = "postgres://postgres.bkhtemypttswlkluaort:Z4PKLWQY8J9gF6Kp@db.bkhtemypttswlkluaort.supabase.co:5432/postgres?connect_timeout=15";
+    // VARIAÇÃO 2: Alias de Usuário (Alguns poolers pedem esse formato)
+    // postgres (apenas)
+    const v2 = `postgres://postgres:${PASS}@${HOST_DIRECT}:6543/postgres?pgbouncer=true&connection_limit=1`;
 
-    // VARIAÇÃO 4: URL Direta na 5432 (IPv4 Workaround - tenta resolver DNS pooler na 5432)
-    const v4 = "postgres://postgres.bkhtemypttswlkluaort:Z4PKLWQY8J9gF6Kp@aws-0-sa-east-1.pooler.supabase.com:5432/postgres?sslmode=require";
+    // VARIAÇÃO 3: Tentar conectar no host direto MAS na porta 5432 (que falhou) usando IPv4 fixo se possível? 
+    // Não temos o IP. Vamos tentar o host direto na porta 5432 de novo mas com connect_timeout bem alto.
+    const v3 = `postgres://postgres.${TENANT}:${PASS}@${HOST_DIRECT}:5432/postgres?connect_timeout=30`;
+
+    // VARIAÇÃO 4: Formato Alternativo de Host
+    // db.TENANT.supabase.co na porta 6543 (Muitos projetos usam esse DNS para o pooler também)
+    const v4 = `postgres://postgres.${TENANT}:${PASS}@${HOST_DIRECT}:6543/postgres?pgbouncer=true`;
 
     async function testConnection(name: string, url: string) {
         let status = 'pending';
@@ -25,18 +35,18 @@ export default async function TestDbPage() {
         try {
             const client = new PrismaClient({
                 datasources: { db: { url } },
-                log: [] // silenciar logs para não poluir
+                log: []
             });
 
             // Timeout de 10s
             const count = await Promise.race([
                 client.usuario.count(),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('Manual Timeout 10s')), 10000))
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout 10s')), 10000))
             ]);
 
             await client.$disconnect();
             status = 'SUCCESS';
-            detail = `Tempo: ${Date.now() - start}ms | Count: ${count}`;
+            detail = `OK! ${Date.now() - start}ms | Count: ${count}`;
         } catch (e: any) {
             status = 'FAILED';
             detail = e.message || JSON.stringify(e);
@@ -44,14 +54,14 @@ export default async function TestDbPage() {
         return { name, status, detail, url_masked: url.replace(/:[^:]+@/, ':***@') };
     }
 
-    results.push(await testConnection('1. Pooler (6543) + PGBouncer', v1));
-    results.push(await testConnection('2. Pooler (6543) NO SSL', v2));
-    results.push(await testConnection('3. Direct (5432) Standard', v3));
-    results.push(await testConnection('4. Pooler Host on 5432', v4));
+    results.push(await testConnection('1. Pooler AWS Standard', v1));
+    results.push(await testConnection('2. Host Direct na Porta 6543', v2)); // Testando se o host db. aceita 6543
+    results.push(await testConnection('3. Direct 5432 (Retry)', v3));
+    results.push(await testConnection('4. Host Direct na 6543 (User Full)', v4));
 
     return (
         <div className="p-10 font-mono text-sm max-w-4xl mx-auto bg-gray-50 min-h-screen">
-            <h1 className="text-2xl font-bold mb-6 text-center">Diagnóstico Avançado de Conexão</h1>
+            <h1 className="text-2xl font-bold mb-6 text-center">Diagnóstico Credenciais Supabase</h1>
 
             <div className="space-y-4">
                 {results.map((res, i) => (
@@ -69,8 +79,7 @@ export default async function TestDbPage() {
                     </div>
                 ))}
             </div>
-
-            <p className="text-center mt-10 text-gray-400">Ambiente: {process.env.NODE_ENV}</p>
+            <p className="mt-4 text-center text-xs text-gray-500">Se o erro for "Tenant or user not found", o problema é usuário/senha/projeto inexistente. Se for "Can't reach", é bloqueio de rede.</p>
         </div>
     );
 }
