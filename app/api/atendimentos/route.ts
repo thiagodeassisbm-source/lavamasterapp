@@ -5,7 +5,7 @@ import { getAuthContext } from '@/lib/auth';
 export async function GET(request: NextRequest) {
     try {
         const ctx = await getAuthContext();
-        if (!ctx) {
+        if (!ctx || !ctx.empresaId) {
             return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
         }
 
@@ -13,7 +13,10 @@ export async function GET(request: NextRequest) {
         const atendimentos = await prisma.agendamento.findMany({
             where: { empresaId: ctx.empresaId },
             include: {
-                cliente: true,
+                cliente: {
+                    include: { veiculos: true }
+                },
+                veiculo: true,
                 servicos: {
                     include: { servico: true }
                 }
@@ -22,11 +25,19 @@ export async function GET(request: NextRequest) {
         });
 
         // Formata para manter compatibilidade com front
-        const formatted = atendimentos.map(a => ({
-            ...a,
-            clienteNome: a.cliente?.nome,
-            valorTotal: Number(a.valorTotal)
-        }));
+        const formatted = atendimentos.map((a: any) => {
+            const veiculoObj = a.veiculo || a.cliente?.veiculos?.[0];
+            const veiculoStr = veiculoObj ? `${veiculoObj.modelo} - ${veiculoObj.placa || ''}` : '';
+
+            return {
+                ...a,
+                clienteNome: a.cliente?.nome || 'Cliente Desconhecido',
+                veiculo: veiculoStr,
+                servicos: a.servicos?.map((s: any) => s.servico?.nome).filter(Boolean) || [],
+                totalAgendamento: Number(a.valorTotal),
+                valorTotal: Number(a.valorTotal)
+            };
+        });
 
         return NextResponse.json(formatted);
     } catch (error) {
@@ -41,23 +52,37 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
     try {
         const ctx = await getAuthContext();
-        if (!ctx) {
+        if (!ctx || !ctx.empresaId) {
             return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
         }
 
         const body = await request.json();
+        const { clienteId, veiculoId, dataHora, status, observacoes, valorTotal, servicos, desconto, formaPagamento } = body;
 
         const novoAtendimento = await prisma.agendamento.create({
             data: {
                 empresaId: ctx.empresaId,
-                clienteId: body.clienteId,
-                veiculoId: body.veiculoId,
-                dataHora: body.dataHora ? new Date(body.dataHora) : new Date(),
-                status: body.status || 'em_andamento',
-                observacoes: body.observacoes,
-                valorTotal: parseFloat(body.valorTotal) || 0
+                clienteId: clienteId,
+                veiculoId: veiculoId,
+                dataHora: dataHora ? new Date(dataHora) : new Date(),
+                status: status || 'em_andamento',
+                observacoes: observacoes,
+                valorTotal: Number(valorTotal) || 0,
+                desconto: Number(desconto) || 0,
+                formaPagamento: formaPagamento,
+                servicos: {
+                    create: servicos?.map((s: any) => ({
+                        servicoId: s.servicoId,
+                        quantidade: 1,
+                        valorUnitario: Number(s.preco) || 0,
+                        valorTotal: Number(s.preco) || 0
+                    }))
+                }
             },
-            include: { cliente: true }
+            include: {
+                cliente: true,
+                servicos: { include: { servico: true } }
+            }
         });
 
         return NextResponse.json(novoAtendimento);
@@ -73,12 +98,12 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
     try {
         const ctx = await getAuthContext();
-        if (!ctx) {
+        if (!ctx || !ctx.empresaId) {
             return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
         }
 
         const body = await request.json();
-        const { id, ...updates } = body;
+        const { id, clienteId, veiculoId, dataHora, status, observacoes, valorTotal, servicos, desconto, formaPagamento } = body;
 
         if (!id) {
             return NextResponse.json({ error: 'ID obrigatório' }, { status: 400 });
@@ -93,15 +118,39 @@ export async function PUT(request: NextRequest) {
             return NextResponse.json({ error: 'Atendimento não encontrado ou acesso negado' }, { status: 404 });
         }
 
+        // Atualização básica
         const atendimentoAtualizado = await prisma.agendamento.update({
             where: { id },
             data: {
-                status: updates.status,
-                observacoes: updates.observacoes,
-                valorTotal: updates.valorTotal !== undefined ? parseFloat(updates.valorTotal) : undefined,
-                dataHora: updates.dataHora ? new Date(updates.dataHora) : undefined
+                clienteId: clienteId || undefined,
+                veiculoId: veiculoId || undefined,
+                status: status,
+                observacoes: observacoes,
+                valorTotal: valorTotal !== undefined ? Number(valorTotal) : undefined,
+                desconto: desconto !== undefined ? Number(desconto) : undefined,
+                formaPagamento: formaPagamento,
+                dataHora: dataHora ? new Date(dataHora) : undefined
             }
         });
+
+        // Atualização de serviços
+        if (servicos && Array.isArray(servicos)) {
+            await prisma.agendamentoServico.deleteMany({
+                where: { agendamentoId: id }
+            });
+
+            if (servicos.length > 0) {
+                await prisma.agendamentoServico.createMany({
+                    data: servicos.map((s: any) => ({
+                        agendamentoId: id,
+                        servicoId: s.servicoId,
+                        quantidade: 1,
+                        valorUnitario: Number(s.preco) || 0,
+                        valorTotal: Number(s.preco) || 0
+                    }))
+                });
+            }
+        }
 
         return NextResponse.json(atendimentoAtualizado);
     } catch (error) {

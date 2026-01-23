@@ -11,6 +11,9 @@ export const metadata: Metadata = {
   title: 'Estética Automotiva - Sistema de Gestão',
   description: 'Sistema completo de gestão para estética automotiva com agenda, financeiro, clientes e muito mais',
   manifest: '/manifest.json',
+  other: {
+    'mobile-web-app-capable': 'yes',
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',

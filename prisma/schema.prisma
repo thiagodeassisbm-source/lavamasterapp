@@ -159,6 +159,8 @@ model Agendamento {
   status      String   @default("agendado") // agendado, confirmado, em_andamento, concluido, cancelado
   observacoes String?
   valorTotal  Float    @default(0)
+  desconto    Float    @default(0)
+  formaPagamento String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

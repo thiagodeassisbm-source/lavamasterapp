@@ -113,26 +113,42 @@ export default function NovoAtendimentoPage() {
                             if (cliente) {
                                 setClienteSelecionado(cliente);
                                 // Try to match vehicle
-                                if (atendimento.veiculo) {
-                                    const veiculo = cliente.veiculos?.find((v: any) => {
-                                        const veiculoStr = `${v.modelo || 'Veículo'} - ${v.placa || ''}`;
-                                        return veiculoStr === atendimento.veiculo;
-                                    });
+                                if (atendimento.veiculoId) {
+                                    const veiculo = cliente.veiculos?.find((v: any) => v.id === atendimento.veiculoId);
+                                    if (veiculo) setVeiculoSelecionado(veiculo);
+                                } else if (atendimento.veiculo) {
+                                    // Fallback if veiculoId is missing but we have string
+                                    const veiculo = cliente.veiculos?.find((v: any) =>
+                                        `${v.modelo} - ${v.placa}` === atendimento.veiculo
+                                    );
                                     if (veiculo) setVeiculoSelecionado(veiculo);
                                 }
                             }
 
-                            // Populate cart
-                            const items = atendimento.servicos.map((nomeServico: string) =>
-                                servicosData.find(s => s.nome === nomeServico)
-                            ).filter((s: any) => !!s) as Servico[];
-                            setCarrinho(items);
+                            // Populate cart (using servicosNomes or servicos array from DB)
+                            const servicosNamesToFind = atendimento.servicosNomes ||
+                                (atendimento.servicos ? atendimento.servicos.map((s: any) => s.servico?.nome) : []);
+
+                            if (servicosNamesToFind && servicosNamesToFind.length > 0) {
+                                const items = servicosNamesToFind.map((nomeServico: string) =>
+                                    servicosData.find(s => s.nome === nomeServico)
+                                ).filter((s: any) => !!s) as Servico[];
+                                setCarrinho(items);
+                            }
 
                             // Populate other fields
                             if (atendimento.dataHora) {
-                                const [date, time] = atendimento.dataHora.split('T');
-                                setDataAgendamento(date);
-                                setHoraAgendamento(time);
+                                const dt = new Date(atendimento.dataHora);
+                                setDataAgendamento(dt.toISOString().split('T')[0]);
+                                setHoraAgendamento(dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }));
+                            }
+
+                            if (atendimento.desconto !== undefined) {
+                                setDesconto(String(atendimento.desconto));
+                            }
+
+                            if (atendimento.formaPagamento) {
+                                setFormaPagamento(atendimento.formaPagamento);
                             }
                         }
                     }
@@ -201,8 +217,13 @@ export default function NovoAtendimentoPage() {
             const payload = {
                 clienteId: clienteSelecionado.id,
                 clienteNome: clienteSelecionado.nome,
+                veiculoId: veiculoSelecionado?.id,
                 veiculo: veiculoSelecionado ? `${veiculoSelecionado.modelo || 'Veículo'} - ${veiculoSelecionado.placa || ''}` : undefined,
-                servicos: carrinho.map(s => s.nome),
+                servicos: carrinho.map(s => ({
+                    servicoId: s.id,
+                    nome: s.nome,
+                    preco: s.preco
+                })),
                 valorTotal: total,
                 desconto: valorDesconto,
                 formaPagamento: formaPagamento,
