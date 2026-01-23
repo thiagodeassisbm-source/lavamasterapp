@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import crypto from 'crypto';
+import { sendPasswordResetEmail } from '@/lib/mail';
 
 export async function POST(request: Request) {
     try {
@@ -37,17 +38,20 @@ export async function POST(request: Request) {
             }
         });
 
-        // Send Email (MOCK)
-        const resetLink = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
+        // Send Email (REAL)
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || 'https://app.lavamaster.com.br';
+        const resetLink = `${baseUrl}/reset-password?token=${resetToken}`;
 
-        console.log('========================================================');
-        console.log(`[EMAIL MOCK] Enviando email para: ${email}`);
-        console.log(`[EMAIL MOCK] Link de Recuperação: ${resetLink}`);
-        console.log('========================================================');
+        console.log(`[AUTH] Enviando link de recuperação para ${email}`);
 
-        // TODO: Integrate real email provider here (e.g., Resend, SendGrid, Nodemailer)
+        const emailSent = await sendPasswordResetEmail(email, resetLink);
 
-        return NextResponse.json({ message: 'Email enviado com sucesso' });
+        if (!emailSent) {
+            console.error('[AUTH] Falha ao enviar email via SMTP');
+            // Optionally return an error, but usually we don't want to expose infra errors
+        }
+
+        return NextResponse.json({ message: 'Email enviado com sucesso (ou aguardando processamento SMTP)' });
 
     } catch (error) {
         console.error('Erro no forgot-password:', error);
