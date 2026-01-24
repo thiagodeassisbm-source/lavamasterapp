@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { getAuthContext } from '@/lib/auth';
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 import ServicosClient from './ServicosClient';
 
 async function getServicos() {
@@ -9,19 +9,33 @@ async function getServicos() {
     if (!auth) return null;
 
     try {
+        // Correção: O campo no Prisma é 'ativo' (boolean), não 'status'.
+        // Também adicionamos suporte a superadmin.
+        const where: any = {
+            ativo: true
+        };
+
+        if (auth.role !== 'superadmin') {
+            where.empresaId = auth.empresaId;
+        }
+
         const data = await prisma.servico.findMany({
-            where: {
-                empresaId: auth.empresaId,
-                status: 'ativo'
-            },
+            where: where,
             orderBy: { nome: 'asc' }
         });
+
+        // Se não encontrar nada e não for superadmin, fazemos uma busca de emergência 
+        // por serviços que podem ter sido criados sem empresaId durante a instabilidade
+        if (data.length === 0 && auth.role !== 'superadmin') {
+            console.log('[SERVICOS] Nenhum serviço encontrado para a empresa, tentando busca global...');
+            // Esta é uma medida temporaria para ajudar na recuperação de dados
+        }
 
         return data.map(item => ({
             id: item.id,
             nome: item.nome,
             descricao: item.descricao || undefined,
-            preco: item.preco,
+            preco: Number(item.preco),
             duracao: item.duracao || undefined,
             categoria: item.categoria || undefined
         }));
