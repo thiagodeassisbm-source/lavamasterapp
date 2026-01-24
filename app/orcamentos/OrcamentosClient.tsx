@@ -74,16 +74,23 @@ export default function OrcamentosClient({ initialOrcamentos }: OrcamentosClient
     const handleSave = async (data: any) => {
         try {
             const orcamentoData = {
-                cliente: data.clienteNome || 'Novo Cliente',
                 clienteId: data.clienteId || '0',
                 veiculo: data.veiculo,
-                itens: data.itens,
-                desconto: data.desconto,
+                itens: data.itens.map((it: any) => ({
+                    servicoId: it.servicoId,
+                    produtoId: it.produtoId,
+                    descricao: it.nome,
+                    quantidade: it.quantidade,
+                    valorUnitario: it.precoUnitario,
+                    valorTotal: it.total
+                })),
+                desconto: data.desconto || 0,
                 observacoes: data.observacoes,
-                valor: data.itens.reduce((acc: number, item: any) => acc + item.total, 0) - (data.desconto || 0),
+                valorTotal: data.itens.reduce((acc: number, item: any) => acc + (item.total || 0), 0),
+                valorFinal: (data.itens.reduce((acc: number, item: any) => acc + (item.total || 0), 0)) - (data.desconto || 0),
                 status: data.status,
-                data: selectedOrcamento ? selectedOrcamento.data : new Date().toISOString().split('T')[0],
-                validade: data.dataValidade
+                dataOrcamento: new Date().toISOString(),
+                validade: data.dataValidade ? new Date(data.dataValidade).toISOString() : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
             };
 
             if (selectedOrcamento) {
