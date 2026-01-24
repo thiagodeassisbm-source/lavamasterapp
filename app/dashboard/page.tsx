@@ -4,12 +4,7 @@ import { getAuthContext } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import MobileMenu from '@/lib/presentation/components/MobileMenu';
 import DashboardClient from './DashboardClient';
-import {
-    DollarSign,
-    Calendar,
-    Users,
-    TrendingDown
-} from 'lucide-react';
+import { Users } from 'lucide-react';
 
 async function getDashboardData() {
     const auth = await getAuthContext();
@@ -31,59 +26,42 @@ async function getDashboardData() {
             atividadesRecentes,
             empresa
         ] = await Promise.all([
-            // Receita do Mês
             prisma.agendamento.findMany({
                 where: {
                     empresaId: auth.empresaId,
                     status: 'concluido',
-                    dataHora: {
-                        gte: startOfMonth,
-                        lte: endOfMonth
-                    }
+                    dataHora: { gte: startOfMonth, lte: endOfMonth }
                 },
                 select: { valorTotal: true }
             }),
-            // Despesas do Mês
             prisma.despesa.findMany({
                 where: {
                     empresaId: auth.empresaId,
-                    dataVencimento: {
-                        gte: startOfMonth,
-                        lte: endOfMonth
-                    }
+                    dataVencimento: { gte: startOfMonth, lte: endOfMonth }
                 },
                 select: { valor: true }
             }),
-            // Agendamentos Hoje
             prisma.agendamento.findMany({
                 where: {
                     empresaId: auth.empresaId,
-                    dataHora: {
-                        gte: startOfToday,
-                        lte: endOfToday
-                    },
+                    dataHora: { gte: startOfToday, lte: endOfToday },
                     status: { not: 'cancelado' }
                 },
                 include: {
                     cliente: true,
-                    servicos: {
-                        include: { servico: true }
-                    }
+                    servicos: { include: { servico: true } }
                 },
                 orderBy: { dataHora: 'asc' }
             }),
-            // Total Clientes
             prisma.cliente.count({
                 where: { empresaId: auth.empresaId }
             }),
-            // Atividades Recentes
             prisma.agendamento.findMany({
                 where: { empresaId: auth.empresaId },
                 orderBy: { updatedAt: 'desc' },
                 take: 5,
                 include: { cliente: true }
             }),
-            // Dados da Empresa (Mensagem WhatsApp)
             prisma.empresa.findUnique({
                 where: { id: auth.empresaId },
                 select: { mensagemConfirmacaoAgendamento: true }
@@ -94,10 +72,10 @@ async function getDashboardData() {
         const valorDespesas = despesasMes.reduce((acc, curr) => acc + (curr.valor || 0), 0);
 
         const stats = [
-            { title: 'Receita do Mês', value: `R$ ${receitaMensal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, change: 0, icon: DollarSign, color: 'text-green-400' },
-            { title: 'Despesas do Mês', value: `R$ ${valorDespesas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, change: 0, icon: TrendingDown, color: 'text-red-400' },
-            { title: 'Agendamentos Hoje', value: atendimentosHoje.length.toString(), change: 0, icon: Calendar, color: 'text-blue-400' },
-            { title: 'Clientes Cadastrados', value: totalClientes.toString(), change: 0, icon: Users, color: 'text-purple-400' },
+            { title: 'Receita do Mês', value: `R$ ${receitaMensal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, change: 0, iconName: 'DollarSign', color: 'text-green-400' },
+            { title: 'Despesas do Mês', value: `R$ ${valorDespesas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, change: 0, iconName: 'TrendingDown', color: 'text-red-400' },
+            { title: 'Agendamentos Hoje', value: atendimentosHoje.length.toString(), change: 0, iconName: 'Calendar', color: 'text-blue-400' },
+            { title: 'Clientes Cadastrados', value: totalClientes.toString(), change: 0, iconName: 'Users', color: 'text-purple-400' },
         ];
 
         const formattedActivities = atividadesRecentes.map(a => ({
@@ -128,7 +106,7 @@ async function getDashboardData() {
         };
     } catch (error) {
         console.error('Erro ao buscar dados do dashboard (server):', error);
-        return null; // Forçará o erro amigável se algo falhar
+        return null;
     }
 }
 
@@ -140,7 +118,6 @@ export default async function DashboardPage() {
 
     const data = await getDashboardData();
 
-    // Se não houver dados, mostramos uma versão vazia em vez do erro fatal
     if (!data) {
         return (
             <div className="flex min-h-screen bg-slate-950 text-white">
@@ -161,12 +138,12 @@ export default async function DashboardPage() {
     return (
         <div className="flex min-h-screen bg-slate-950">
             <MobileMenu />
-            <main className="flex-1 lg:ml-72">
+            <main className="flex-1 lg:ml-72 uppercase-none">
                 <Suspense fallback={<div className="p-8 text-white">Carregando painel...</div>}>
                     <DashboardClient
-                        initialStats={JSON.parse(JSON.stringify(data.stats))}
-                        initialRecentActivities={JSON.parse(JSON.stringify(data.recentActivities))}
-                        initialTodaysAppointments={JSON.parse(JSON.stringify(data.todaysAppointments))}
+                        initialStats={data.stats}
+                        initialRecentActivities={data.recentActivities}
+                        initialTodaysAppointments={data.todaysAppointments}
                         initialWhatsappTemplate={data.whatsappTemplate}
                     />
                 </Suspense>

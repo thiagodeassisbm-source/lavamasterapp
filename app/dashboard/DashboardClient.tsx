@@ -18,8 +18,20 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
+// Mapa de ícones para o cliente renderizar por nome
+const IconMap: Record<string, any> = {
+    DollarSign,
+    TrendingDown,
+    Calendar,
+    Users,
+    CheckCircle,
+    Wrench,
+    Package,
+    FileText
+};
+
 interface QuickAccessCard {
-    icon: React.ElementType;
+    icon: string;
     label: string;
     href: string;
     color: string;
@@ -30,48 +42,48 @@ interface StatCard {
     title: string;
     value: string;
     change: number;
-    icon: React.ElementType;
+    iconName: string; // Enviamos apenas o nome
     color: string;
 }
 
-const quickAccessItems: QuickAccessCard[] = [
+const quickAccessItems = [
     {
-        icon: Calendar,
+        icon: 'Calendar',
         label: 'Agenda',
         href: '/agenda',
         color: 'from-blue-500 to-blue-600',
         gradient: 'bg-gradient-to-br from-blue-500/20 to-blue-600/20',
     },
     {
-        icon: DollarSign,
+        icon: 'DollarSign',
         label: 'Financeiro',
         href: '/financeiro',
         color: 'from-green-500 to-emerald-600',
         gradient: 'bg-gradient-to-br from-green-500/20 to-emerald-600/20',
     },
     {
-        icon: Users,
+        icon: 'Users',
         label: 'Clientes',
         href: '/clientes',
         color: 'from-purple-500 to-purple-600',
         gradient: 'bg-gradient-to-br from-purple-500/20 to-purple-600/20',
     },
     {
-        icon: FileText,
+        icon: 'FileText',
         label: 'Orçamentos',
         href: '/orcamentos',
         color: 'from-orange-500 to-orange-600',
         gradient: 'bg-gradient-to-br from-orange-500/20 to-orange-600/20',
     },
     {
-        icon: Package,
+        icon: 'Package',
         label: 'Estoque',
         href: '/estoque',
         color: 'from-cyan-500 to-cyan-600',
         gradient: 'bg-gradient-to-br from-cyan-500/20 to-cyan-600/20',
     },
     {
-        icon: Wrench,
+        icon: 'Wrench',
         label: 'Serviços',
         href: '/servicos',
         color: 'from-pink-500 to-pink-600',
@@ -92,21 +104,22 @@ export default function DashboardClient({
     initialTodaysAppointments,
     initialWhatsappTemplate
 }: DashboardClientProps) {
-    const [stats, setStats] = useState<StatCard[]>(initialStats);
-    const [recentActivities, setRecentActivities] = useState<any[]>(initialRecentActivities);
-    const [todaysAppointments, setTodaysAppointments] = useState<any[]>(initialTodaysAppointments);
+    const [stats] = useState<StatCard[]>(initialStats);
+    const [recentActivities] = useState<any[]>(initialRecentActivities);
+    const [todaysAppointments] = useState<any[]>(initialTodaysAppointments);
     const [user, setUser] = useState<any>(null);
-    const [whatsappTemplate, setWhatsappTemplate] = useState(initialWhatsappTemplate);
+    const [whatsappTemplate] = useState(initialWhatsappTemplate);
+    const [isProfileOpen, setIsProfileOpen] = useState(false);
 
     useEffect(() => {
-        // Carrega usuário do localStorage
         const storedUser = localStorage.getItem('user_data');
         if (storedUser) {
-            setUser(JSON.parse(storedUser));
+            try {
+                setUser(JSON.parse(storedUser));
+            } catch (e) {
+                console.error('Erro ao ler dados do usuário');
+            }
         }
-
-        // Se quisermos manter atualizado, poderíamos fazer um fetch aqui também, 
-        // mas o foco é o carregamento inicial instantâneo.
     }, []);
 
     const handleWhatsApp = (app: any) => {
@@ -144,8 +157,6 @@ export default function DashboardClient({
         const link = `https://wa.me/55${cleanPhone}?text=${encodeURIComponent(msg)}`;
         window.open(link, '_blank');
     };
-
-    const [isProfileOpen, setIsProfileOpen] = useState(false);
 
     return (
         <div className="min-h-screen p-4 lg:p-8 space-y-6">
@@ -199,7 +210,7 @@ export default function DashboardClient({
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-slide-up">
                 {stats.map((stat, index) => {
-                    const Icon = stat.icon;
+                    const Icon = IconMap[stat.iconName] || DollarSign;
                     const isPositive = stat.change > 0;
 
                     return (
@@ -231,20 +242,20 @@ export default function DashboardClient({
                 <h2 className="text-2xl font-bold text-white mb-4">Acesso Rápido</h2>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                     {quickAccessItems.map((item, index) => {
-                        const Icon = item.icon;
+                        const Icon = IconMap[item.icon] || Clock;
 
                         return (
                             <Link
                                 key={index}
                                 href={item.href}
                                 className={`
-                  ${item.gradient} rounded-2xl p-6 
-                  border border-white/10
-                  hover:scale-105 hover:border-white/20
-                  transition-all duration-300 
-                  flex flex-col items-center justify-center gap-3
-                  group cursor-pointer
-                `}
+                                  ${item.gradient} rounded-2xl p-6 
+                                  border border-white/10
+                                  hover:scale-105 hover:border-white/20
+                                  transition-all duration-300 
+                                  flex flex-col items-center justify-center gap-3
+                                  group cursor-pointer
+                                `}
                             >
                                 <div className={`p-4 rounded-xl bg-gradient-to-br ${item.color} shadow-lg group-hover:shadow-xl transition-shadow`}>
                                     <Icon className="w-8 h-8 text-white" />
@@ -341,7 +352,7 @@ export default function DashboardClient({
                                                 {app.servicoPrincipal}
                                             </span>
                                             <span className="text-xs uppercase font-bold tracking-wider opacity-70 border border-white/10 px-1.5 rounded">
-                                                {app.status.replace('_', ' ')}
+                                                {String(app.status).replace('_', ' ')}
                                             </span>
                                         </div>
                                     </div>
