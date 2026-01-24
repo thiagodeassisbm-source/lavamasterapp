@@ -112,15 +112,23 @@ export default function OrcamentoForm({ onClose, onSave, initialData }: Orcament
     const watchItens = watch('itens');
     const watchDesconto = watch('desconto');
 
-    // Mocks de serviços para os cards 
-    // (Poderia vir de props ou context se necessário, mas mantendo a consistência com AgendamentoForm)
-    const servicosDisponiveis = [
-        { id: '1', nome: 'Lavagem Completa', preco: 80 },
-        { id: '2', nome: 'Polimento', preco: 250 },
-        { id: '3', nome: 'Cristalização', preco: 350 },
-        { id: '4', nome: 'Vitrificação', preco: 800 },
-        { id: '5', nome: 'Higienização Interna', preco: 150 },
-    ];
+    const [servicosDisponiveis, setServicosDisponiveis] = useState<any[]>([]);
+
+    // Fetch Serviços Reais
+    useEffect(() => {
+        const fetchServicos = async () => {
+            try {
+                const res = await fetch('/api/servicos');
+                if (res.ok) {
+                    const data = await res.json();
+                    setServicosDisponiveis(data);
+                }
+            } catch (error) {
+                console.error('Erro ao buscar serviços:', error);
+            }
+        };
+        fetchServicos();
+    }, []);
 
     // Cálculos de totais
     const subtotal = watchItens?.reduce((acc, item) => {
