@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { getAuthContext } from '@/lib/auth';
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 import MobileMenu from '@/lib/presentation/components/MobileMenu';
 import DashboardClient from './DashboardClient';
 import {
@@ -13,7 +13,7 @@ import {
 
 async function getDashboardData() {
     const auth = await getAuthContext();
-    if (!auth) return null;
+    if (!auth || !auth.empresaId) return null;
 
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -29,14 +29,14 @@ async function getDashboardData() {
             atendimentosHoje,
             totalClientes,
             atividadesRecentes,
-            configMsg
+            empresa
         ] = await Promise.all([
             // Receita do Mês
             prisma.agendamento.findMany({
                 where: {
                     empresaId: auth.empresaId,
                     status: 'concluido',
-                    dataAgendamento: {
+                    dataHora: {
                         gte: startOfMonth,
                         lte: endOfMonth
                     }
@@ -47,7 +47,7 @@ async function getDashboardData() {
             prisma.despesa.findMany({
                 where: {
                     empresaId: auth.empresaId,
-                    data: {
+                    dataVencimento: {
                         gte: startOfMonth,
                         lte: endOfMonth
                     }
@@ -58,7 +58,7 @@ async function getDashboardData() {
             prisma.agendamento.findMany({
                 where: {
                     empresaId: auth.empresaId,
-                    dataAgendamento: {
+                    dataHora: {
                         gte: startOfToday,
                         lte: endOfToday
                     },
@@ -70,7 +70,7 @@ async function getDashboardData() {
                         include: { servico: true }
                     }
                 },
-                orderBy: { dataAgendamento: 'asc' }
+                orderBy: { dataHora: 'asc' }
             }),
             // Total Clientes
             prisma.cliente.count({
@@ -83,12 +83,10 @@ async function getDashboardData() {
                 take: 5,
                 include: { cliente: true }
             }),
-            // WhatsApp Template
-            prisma.configuracao.findFirst({
-                where: {
-                    empresaId: auth.empresaId,
-                    chave: 'whatsapp_template'
-                }
+            // Dados da Empresa (Mensagem WhatsApp)
+            prisma.empresa.findUnique({
+                where: { id: auth.empresaId },
+                select: { mensagemConfirmacaoAgendamento: true }
             })
         ]);
 
@@ -105,32 +103,32 @@ async function getDashboardData() {
         const formattedActivities = atividadesRecentes.map(a => ({
             id: a.id,
             type: a.status === 'concluido' ? 'success' : 'info',
-            message: `${a.status === 'concluido' ? 'Serviço concluído' : 'Novo serviço iniciado'} - ${a.cliente.nome}`,
+            message: `${a.status === 'concluido' ? 'Serviço concluído' : 'Novo serviço iniciado'} - ${a.cliente?.nome || 'Cliente'}`,
             time: new Date(a.updatedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
             icon: a.status === 'concluido' ? 'CheckCircle' : 'Wrench'
         }));
 
         const formattedTodaysAppointments = atendimentosHoje.map(a => ({
             id: a.id,
-            clienteNome: a.cliente.nome,
-            telefone: a.cliente.telefone,
-            dataHora: a.dataAgendamento.toISOString(),
+            clienteNome: a.cliente?.nome || 'Cliente',
+            telefone: a.cliente?.telefone || '',
+            dataHora: a.dataHora.toISOString(),
             status: a.status,
-            servicoPrincipal: a.servicos.length > 0
+            servicoPrincipal: a.servicos && a.servicos.length > 0
                 ? (a.servicos[0].servico?.nome || 'Serviço')
                 : 'Serviço',
-            servicosCount: a.servicos.length
+            servicosCount: a.servicos?.length || 0
         }));
 
         return {
             stats,
             recentActivities: formattedActivities,
             todaysAppointments: formattedTodaysAppointments,
-            whatsappTemplate: configMsg?.valor || "Olá *{cliente}*! Confirmando agendamento para *{data}* às *{hora}* na Estética Automotiva."
+            whatsappTemplate: empresa?.mensagemConfirmacaoAgendamento || "Olá *{cliente}*! Confirmando agendamento para *{data}* às *{hora}* na Estética Automotiva."
         };
     } catch (error) {
         console.error('Erro ao buscar dados do dashboard (server):', error);
-        return null;
+        return null; // Forçará o erro amigável se algo falhar
     }
 }
 
@@ -141,13 +139,20 @@ export default async function DashboardPage() {
     }
 
     const data = await getDashboardData();
+
+    // Se não houver dados, mostramos uma versão vazia em vez do erro fatal
     if (!data) {
-        // Se der erro, poderíamos redirecionar ou mostrar erro, mas vamos tentar carregar vazio
         return (
-            <div className="flex min-h-screen bg-slate-950">
+            <div className="flex min-h-screen bg-slate-950 text-white">
                 <MobileMenu />
-                <main className="flex-1 lg:ml-72 flex items-center justify-center">
-                    <p className="text-red-400">Erro ao carregar dados do sistema.</p>
+                <main className="flex-1 lg:ml-72 p-8 pt-20 lg:pt-8">
+                    <div className="text-center py-20 bg-white/5 rounded-2xl border border-white/10">
+                        <Users className="w-16 h-16 mx-auto mb-4 text-slate-500 opacity-20" />
+                        <h2 className="text-xl font-semibold mb-2">Bem-vindo ao Lavamaster</h2>
+                        <p className="text-slate-400 max-w-md mx-auto">
+                            Estamos preparando seu painel. Se esta mensagem persistir, verifique sua conexão ou tente fazer login novamente.
+                        </p>
+                    </div>
                 </main>
             </div>
         );
@@ -157,17 +162,7 @@ export default async function DashboardPage() {
         <div className="flex min-h-screen bg-slate-950">
             <MobileMenu />
             <main className="flex-1 lg:ml-72">
-                <Suspense fallback={
-                    <div className="p-8 space-y-8 animate-pulse">
-                        <div className="h-20 bg-white/5 rounded-2xl w-1/3"></div>
-                        <div className="grid grid-cols-4 gap-4">
-                            {[1, 2, 3, 4].map(i => <div key={i} className="h-32 bg-white/5 rounded-2xl"></div>)}
-                        </div>
-                        <div className="grid grid-cols-6 gap-4">
-                            {[1, 2, 3, 4, 5, 6].map(i => <div key={i} className="h-24 bg-white/5 rounded-2xl"></div>)}
-                        </div>
-                    </div>
-                }>
+                <Suspense fallback={<div className="p-8 text-white">Carregando painel...</div>}>
                     <DashboardClient
                         initialStats={JSON.parse(JSON.stringify(data.stats))}
                         initialRecentActivities={JSON.parse(JSON.stringify(data.recentActivities))}
