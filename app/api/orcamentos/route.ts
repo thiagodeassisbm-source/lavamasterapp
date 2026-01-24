@@ -9,8 +9,18 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
         }
 
+        const { searchParams } = new URL(request.url);
+        const filterEmpresaId = searchParams.get('empresaId');
+
+        const where: any = {};
+        if (ctx.role !== 'superadmin') {
+            where.empresaId = ctx.empresaId;
+        } else if (filterEmpresaId) {
+            where.empresaId = filterEmpresaId;
+        }
+
         const orcamentos = await prisma.orcamento.findMany({
-            where: { empresaId: ctx.empresaId },
+            where: where,
             include: {
                 cliente: true,
                 itens: {
@@ -45,12 +55,19 @@ export async function POST(request: NextRequest) {
         // Extrai itens e dados do orçamento
         const { itens, ...orcamentoData } = data;
 
+        // Se for superadmin, pode vir no body, senão usa o do contexto
+        const empresaId = (ctx.role === 'superadmin' ? data.empresaId : ctx.empresaId) || ctx.empresaId;
+
+        if (!empresaId) {
+            return NextResponse.json({ error: 'EmpresaId é obrigatório' }, { status: 400 });
+        }
+
         const novoOrcamento = await prisma.orcamento.create({
             data: {
-                empresaId: ctx.empresaId,
+                empresaId: empresaId,
                 clienteId: orcamentoData.clienteId,
                 dataOrcamento: orcamentoData.dataOrcamento ? new Date(orcamentoData.dataOrcamento) : new Date(),
-                validade: orcamentoData.validade ? new Date(orcamentoData.validade) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 dias default
+                validade: orcamentoData.validade ? new Date(orcamentoData.validade) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
                 valorTotal: parseFloat(orcamentoData.valorTotal) || 0,
                 desconto: parseFloat(orcamentoData.desconto) || 0,
                 valorFinal: parseFloat(orcamentoData.valorFinal) || 0,
@@ -58,8 +75,9 @@ export async function POST(request: NextRequest) {
                 observacoes: orcamentoData.observacoes,
                 itens: {
                     create: itens?.map((item: any) => ({
-                        produtoId: item.produtoId,
-                        servicoId: item.servicoId,
+                        // Importante: Se o ID for vazio ou '0', passamos null para não quebrar a chave estrangeira
+                        produtoId: (item.produtoId && item.produtoId !== '0') ? item.produtoId : null,
+                        servicoId: (item.servicoId && item.servicoId !== '0') ? item.servicoId : null,
                         descricao: item.descricao || 'Item de orçamento',
                         quantidade: parseInt(item.quantidade) || 1,
                         valorUnitario: parseFloat(item.valorUnitario) || 0,
