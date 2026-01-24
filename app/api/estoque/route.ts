@@ -9,8 +9,19 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
         }
 
+        // Se for superadmin, pode ver tudo ou filtrar por empresa se vindo query string
+        const { searchParams } = new URL(request.url);
+        const filterEmpresaId = searchParams.get('empresaId');
+
+        const where: any = {};
+        if (ctx.role !== 'superadmin') {
+            where.empresaId = ctx.empresaId;
+        } else if (filterEmpresaId) {
+            where.empresaId = filterEmpresaId;
+        }
+
         const produtos = await prisma.produto.findMany({
-            where: { empresaId: ctx.empresaId },
+            where: where,
             orderBy: { nome: 'asc' }
         });
 
@@ -33,9 +44,16 @@ export async function POST(request: NextRequest) {
 
         const data = await request.json();
 
+        // Se for superadmin, precisa enviar empresaId no body
+        const empresaId = ctx.empresaId || data.empresaId;
+
+        if (!empresaId) {
+            return NextResponse.json({ error: 'EmpresaId é obrigatório' }, { status: 400 });
+        }
+
         const novoProduto = await prisma.produto.create({
             data: {
-                empresaId: ctx.empresaId,
+                empresaId: empresaId,
                 nome: data.nome,
                 descricao: data.descricao,
                 codigo: data.codigo,

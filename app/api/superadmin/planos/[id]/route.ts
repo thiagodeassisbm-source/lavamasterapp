@@ -1,27 +1,31 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(
+    request: Request,
+    context: any
+) {
     try {
+        const params = await context.params;
+        const id = params.id;
         const data = await request.json();
 
-        // @ts-ignore
-        if (!prisma.plano) {
-            return NextResponse.json({ error: 'Erro de Servidor: Modelo de Banco de Dados não sincronizado.' }, { status: 500 });
+        if (!id) {
+            return NextResponse.json({ error: 'ID não fornecido' }, { status: 400 });
         }
 
         // @ts-ignore
         const plano = await prisma.plano.update({
-            where: { id: params.id },
+            where: { id: id },
             data: {
                 nome: data.nome,
                 descricao: data.descricao,
-                preco: Number(data.preco),
+                preco: data.preco !== undefined ? Number(data.preco) : undefined,
                 intervalo: data.intervalo,
-                limiteUsuarios: Number(data.limiteUsuarios),
-                limiteClientes: Number(data.limiteClientes),
-                limiteAgendamentos: Number(data.limiteAgendamentos),
-                duracaoDias: data.duracaoDias ? Number(data.duracaoDias) : null,
+                limiteUsuarios: data.limiteUsuarios !== undefined ? Number(data.limiteUsuarios) : undefined,
+                limiteClientes: data.limiteClientes !== undefined ? Number(data.limiteClientes) : undefined,
+                limiteAgendamentos: data.limiteAgendamentos !== undefined ? Number(data.limiteAgendamentos) : undefined,
+                duracaoDias: data.duracaoDias !== undefined ? (data.duracaoDias ? Number(data.duracaoDias) : null) : undefined,
                 ativo: data.ativo,
                 destaque: data.destaque
             }
@@ -36,11 +40,21 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     }
 }
 
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(
+    request: Request,
+    context: any
+) {
     try {
+        const params = await context.params;
+        const id = params.id;
+
+        if (!id) {
+            return NextResponse.json({ error: 'ID não fornecido' }, { status: 400 });
+        }
+
         // @ts-ignore
         await prisma.plano.delete({
-            where: { id: params.id }
+            where: { id: id }
         });
 
         return NextResponse.json({ success: true });

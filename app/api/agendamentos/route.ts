@@ -5,14 +5,22 @@ import { getAuthContext } from '@/lib/auth';
 export async function GET(request: NextRequest) {
     try {
         const ctx = await getAuthContext();
-        if (!ctx || !ctx.empresaId) {
+        if (!ctx) {
             return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
         }
 
+        const { searchParams } = new URL(request.url);
+        const filterEmpresaId = searchParams.get('empresaId');
+
+        const where: any = {};
+        if (ctx.role !== 'superadmin') {
+            where.empresaId = ctx.empresaId;
+        } else if (filterEmpresaId) {
+            where.empresaId = filterEmpresaId;
+        }
+
         const agendamentos = await prisma.agendamento.findMany({
-            where: {
-                empresaId: ctx.empresaId
-            },
+            where: where,
             include: {
                 cliente: true,
                 veiculo: true,
@@ -53,15 +61,22 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
     try {
         const ctx = await getAuthContext();
-        if (!ctx || !ctx.empresaId) {
+        if (!ctx) {
             return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
         }
 
         const body = await request.json();
 
+        // Se for superadmin, precisa enviar empresaId no body
+        const empresaId = ctx.empresaId || body.empresaId;
+
+        if (!empresaId) {
+            return NextResponse.json({ error: 'EmpresaId é obrigatório' }, { status: 400 });
+        }
+
         // VERIFICAÇÃO DE LIMITE DE AGENDAMENTOS
         const empresa = await prisma.empresa.findUnique({
-            where: { id: ctx.empresaId },
+            where: { id: empresaId },
             include: {
                 _count: {
                     select: { agendamentos: true }
@@ -82,7 +97,7 @@ export async function POST(request: NextRequest) {
         if (!clienteId && clienteNome) {
             const novoCliente = await prisma.cliente.create({
                 data: {
-                    empresaId: ctx.empresaId,
+                    empresaId: empresaId,
                     nome: clienteNome,
                     telefone: 'Não Informado',
                     observacoes: 'Criado via Agendamento'
@@ -104,7 +119,7 @@ export async function POST(request: NextRequest) {
 
         const novoAgendamento = await prisma.agendamento.create({
             data: {
-                empresaId: ctx.empresaId,
+                empresaId: empresaId,
                 clienteId: clienteId,
                 veiculoId: veiculoId || undefined,
                 dataHora: date,
@@ -138,7 +153,7 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
     try {
         const ctx = await getAuthContext();
-        if (!ctx || !ctx.empresaId) {
+        if (!ctx) {
             return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
         }
 
@@ -147,6 +162,15 @@ export async function PUT(request: NextRequest) {
 
         if (!id) {
             return NextResponse.json({ error: 'ID é obrigatório' }, { status: 400 });
+        }
+
+        // Verificar permissão
+        const existing = await prisma.agendamento.findFirst({
+            where: ctx.role !== 'superadmin' ? { id: id, empresaId: ctx.empresaId! } : { id: id }
+        });
+
+        if (!existing) {
+            return NextResponse.json({ error: 'Agendamento não encontrado' }, { status: 404 });
         }
 
         const date = dataHora ? new Date(dataHora) : undefined;

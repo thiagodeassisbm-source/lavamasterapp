@@ -1,29 +1,17 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { cookies } from 'next/headers';
-import jwt from 'jsonwebtoken';
-
-// Helper de Contexto (igual ao route principal)
-async function getContext() {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('auth-token')?.value;
-    if (!token) return null;
-    try {
-        const decoded: any = jwt.verify(token, process.env.JWT_SECRET || 'dev-secret-key-123');
-        return { userId: decoded.sub, empresaId: decoded.empresaId };
-    } catch {
-        return null;
-    }
-}
+import { getAuthContext } from '@/lib/auth';
 
 export async function GET(
     request: Request,
-    context: { params: Promise<{ id: string }> }
+    context: { params: { id: string } }
 ) {
     try {
         const { id } = await context.params;
-        const ctx = await getContext();
+        const ctx = await getAuthContext();
 
+        // Se for admin/gerente/superadmin, pode ver qualquer cliente da empresa
+        // se for usuário comum, também (nesse sistema as empresas compartilham clientes internamente)
         const cliente = await prisma.cliente.findUnique({
             where: { id },
             include: { veiculos: true }
@@ -33,9 +21,9 @@ export async function GET(
             return NextResponse.json({ error: 'Cliente não encontrado' }, { status: 404 });
         }
 
-        // Segurança: Verificar empresa se contexto existir
-        if (ctx && cliente.empresaId !== ctx.empresaId) {
-            // return NextResponse.json({ error: 'Acesso negado' }, { status: 403 });
+        // Segurança: Verificar empresa
+        if (ctx && ctx.role !== 'superadmin' && cliente.empresaId !== ctx.empresaId) {
+            return NextResponse.json({ error: 'Acesso negado' }, { status: 403 });
         }
 
         return NextResponse.json(cliente);
@@ -47,16 +35,31 @@ export async function GET(
 
 export async function PUT(
     request: Request,
-    context: { params: Promise<{ id: string }> }
+    context: { params: { id: string } }
 ) {
     try {
         const { id } = await context.params;
         const data = await request.json();
-        const ctx = await getContext();
+        const ctx = await getAuthContext();
+
+        if (!ctx) {
+            return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+        }
 
         const { veiculos, id: _id, createdAt, updatedAt, ...clienteData } = data;
 
-        // Atualiza Cliente e reseta veiculos (estratégia simples)
+        // Verificar se pertence à empresa antes de atualizar
+        const existing = await prisma.cliente.findFirst({
+            where: {
+                id: id,
+                empresaId: ctx.empresaId || undefined
+            }
+        });
+
+        if (!existing && ctx.role !== 'superadmin') {
+            return NextResponse.json({ error: 'Cliente não encontrado ou sem permissão' }, { status: 404 });
+        }
+
         const updated = await prisma.cliente.update({
             where: { id },
             data: {
@@ -87,7 +90,6 @@ export async function PUT(
         return NextResponse.json(updated);
     } catch (error: any) {
         console.error('PUT Error:', error);
-        // Pega erro do Prisma se cliente nÃ£o existir
         if (error.code === 'P2025') {
             return NextResponse.json({ error: 'Cliente não encontrado para atualização' }, { status: 404 });
         }
@@ -100,13 +102,28 @@ export async function PUT(
 
 export async function DELETE(
     request: Request,
-    context: { params: Promise<{ id: string }> }
+    context: { params: { id: string } }
 ) {
     try {
         const { id } = await context.params;
-        const ctx = await getContext();
+        const ctx = await getAuthContext();
 
-        // Verifica se existe antes? Ou try/catch P2025
+        if (!ctx) {
+            return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+        }
+
+        // Verifica se pertence à empresa
+        const existing = await prisma.cliente.findFirst({
+            where: {
+                id: id,
+                empresaId: ctx.empresaId || undefined
+            }
+        });
+
+        if (!existing && ctx.role !== 'superadmin') {
+            return NextResponse.json({ error: 'Cliente não encontrado ou sem permissão' }, { status: 404 });
+        }
+
         await prisma.cliente.delete({
             where: { id }
         });

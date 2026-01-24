@@ -1,72 +1,92 @@
-import { NextResponse } from 'next/server';
-import fs from 'fs/promises';
-import path from 'path';
-
-const DB_FILE = path.join(process.cwd(), 'local-db.json');
-
-async function readLocalDb() {
-    try {
-        const data = await fs.readFile(DB_FILE, 'utf-8');
-        return JSON.parse(data);
-    } catch {
-        return {};
-    }
-}
-
-async function writeLocalDb(data: any) {
-    await fs.writeFile(DB_FILE, JSON.stringify(data, null, 2));
-}
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { getAuthContext } from '@/lib/auth';
 
 export async function PUT(
-    request: Request,
-    context: { params: Promise<{ id: string }> }
+    request: NextRequest,
+    context: any
 ) {
     try {
-        const { id } = await context.params;
-        const body = await request.json();
-        const db = await readLocalDb();
+        const ctx = await getAuthContext();
+        if (!ctx) {
+            return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+        }
 
-        if (!db.orcamentos) return NextResponse.json({ error: 'Orçamento não encontrado' }, { status: 404 });
+        // Compatibilidade Next.js 14/15
+        const params = await context.params;
+        const id = params.id;
+        const data = await request.json();
 
-        const index = db.orcamentos.findIndex((o: any) => o.id === id);
-        if (index === -1) return NextResponse.json({ error: 'Orçamento não encontrado' }, { status: 404 });
+        const orcamento = await prisma.orcamento.findFirst({
+            where: {
+                id: id,
+                empresaId: ctx.empresaId || undefined
+            }
+        });
 
-        const updatedOrcamento = {
-            ...db.orcamentos[index],
-            ...body,
-            updatedAt: new Date(),
-        };
+        if (!orcamento) {
+            return NextResponse.json({ error: 'Orçamento não encontrado' }, { status: 404 });
+        }
 
-        db.orcamentos[index] = updatedOrcamento;
-        await writeLocalDb(db);
+        const updatedOrcamento = await prisma.orcamento.update({
+            where: { id: id },
+            data: {
+                dataOrcamento: data.dataOrcamento ? new Date(data.dataOrcamento) : undefined,
+                validade: data.validade ? new Date(data.validade) : undefined,
+                valorTotal: data.valorTotal !== undefined ? parseFloat(data.valorTotal) : undefined,
+                desconto: data.desconto !== undefined ? parseFloat(data.desconto) : undefined,
+                valorFinal: data.valorFinal !== undefined ? parseFloat(data.valorFinal) : undefined,
+                status: data.status,
+                observacoes: data.observacoes,
+            }
+        });
 
         return NextResponse.json(updatedOrcamento);
+
     } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        console.error('Erro ao atualizar orçamento:', error);
+        return NextResponse.json(
+            { error: error.message },
+            { status: 500 }
+        );
     }
 }
 
 export async function DELETE(
-    request: Request,
-    context: { params: Promise<{ id: string }> }
+    request: NextRequest,
+    context: any
 ) {
     try {
-        const { id } = await context.params;
-        const db = await readLocalDb();
+        const ctx = await getAuthContext();
+        if (!ctx) {
+            return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+        }
 
-        if (!db.orcamentos) return NextResponse.json({ error: 'Orçamento não encontrado' }, { status: 404 });
+        const params = await context.params;
+        const id = params.id;
 
-        const initialLength = db.orcamentos.length;
-        db.orcamentos = db.orcamentos.filter((o: any) => o.id !== id);
+        const orcamento = await prisma.orcamento.findFirst({
+            where: {
+                id: id,
+                empresaId: ctx.empresaId || undefined
+            }
+        });
 
-        if (db.orcamentos.length === initialLength) {
+        if (!orcamento) {
             return NextResponse.json({ error: 'Orçamento não encontrado' }, { status: 404 });
         }
 
-        await writeLocalDb(db);
+        await prisma.orcamento.delete({
+            where: { id: id }
+        });
 
         return NextResponse.json({ success: true });
+
     } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        console.error('Erro ao excluir orçamento:', error);
+        return NextResponse.json(
+            { error: error.message },
+            { status: 500 }
+        );
     }
 }

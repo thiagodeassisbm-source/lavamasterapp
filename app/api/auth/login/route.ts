@@ -91,19 +91,19 @@ export async function POST(request: Request) {
             redirect: usuario.role === 'superadmin' ? '/superadmin/dashboard' : '/dashboard'
         });
 
-        // Cookie Principal (Novo Padrão)
+        // Cookie Principal (Padrão moderno com underline)
         response.cookies.set('auth_token', token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
+            secure: true, // Força secure pois você está usando HTTPS no domínio .com.br
             sameSite: 'lax',
             path: '/',
-            maxAge: 86400
+            maxAge: 86400 // 24 horas
         });
 
-        // Cookie de Compatibilidade (Legado) - Para garantir que funcioine enquanto o cache propaga
+        // Cookie de Compatibilidade (Padrão antigo com hífen)
         response.cookies.set('auth-token', token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
+            secure: true,
             sameSite: 'lax',
             path: '/',
             maxAge: 86400

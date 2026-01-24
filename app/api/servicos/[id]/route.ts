@@ -1,10 +1,10 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getAuthContext } from '@/lib/auth';
 
 export async function PUT(
-    request: Request,
-    { params }: { params: { id: string } }
+    request: NextRequest,
+    context: any
 ) {
     try {
         const ctx = await getAuthContext();
@@ -12,15 +12,24 @@ export async function PUT(
             return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
         }
 
+        const params = await context.params;
         const id = params.id;
         const data = await request.json();
 
-        // Atualiza o serviço no banco de dados
-        const updatedServico = await prisma.servico.update({
+        // Verificar se o serviço existe e pertence à empresa
+        const servico = await prisma.servico.findFirst({
             where: {
-                id,
-                empresaId: ctx.empresaId || undefined // Segurança: garante que pertence à empresa
-            },
+                id: id,
+                empresaId: ctx.empresaId || undefined
+            }
+        });
+
+        if (!servico) {
+            return NextResponse.json({ error: 'Serviço não encontrado' }, { status: 404 });
+        }
+
+        const updatedServico = await prisma.servico.update({
+            where: { id: id },
             data: {
                 nome: data.nome,
                 descricao: data.descricao,
@@ -33,16 +42,13 @@ export async function PUT(
         return NextResponse.json(updatedServico);
     } catch (error: any) {
         console.error('Error updating service:', error);
-        if (error.code === 'P2025') {
-            return NextResponse.json({ error: 'Serviço não encontrado' }, { status: 404 });
-        }
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
 
 export async function DELETE(
-    request: Request,
-    { params }: { params: { id: string } }
+    request: NextRequest,
+    context: any
 ) {
     try {
         const ctx = await getAuthContext();
@@ -50,27 +56,30 @@ export async function DELETE(
             return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
         }
 
+        const params = await context.params;
         const id = params.id;
 
-        // Marcamos como inativo em vez de deletar para manter histórico se necessário,
-        // mas o sistema atual parece filtrar por ativo: true.
-        // Se preferir deletar fisicamente:
-        await prisma.servico.update({
+        // Verificar se pertence à empresa
+        const servico = await prisma.servico.findFirst({
             where: {
-                id,
+                id: id,
                 empresaId: ctx.empresaId || undefined
-            },
-            data: {
-                ativo: false
             }
+        });
+
+        if (!servico) {
+            return NextResponse.json({ error: 'Serviço não encontrado' }, { status: 404 });
+        }
+
+        // Marcar como inativo
+        await prisma.servico.update({
+            where: { id: id },
+            data: { ativo: false }
         });
 
         return NextResponse.json({ success: true });
     } catch (error: any) {
         console.error('Error deleting service:', error);
-        if (error.code === 'P2025') {
-            return NextResponse.json({ error: 'Serviço não encontrado' }, { status: 404 });
-        }
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }

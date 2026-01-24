@@ -25,14 +25,20 @@ function verifySuperAdmin(request: NextRequest) {
 // GET - Buscar empresa por ID
 export async function GET(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    context: any
 ) {
     try {
         verifySuperAdmin(request)
+        const params = await context.params;
+        const id = params.id;
+
+        if (!id) {
+            return NextResponse.json({ error: 'ID não fornecido' }, { status: 400 });
+        }
 
         // @ts-ignore
         const empresa = await prisma.empresa.findUnique({
-            where: { id: params.id },
+            where: { id: id },
             include: {
                 _count: {
                     select: {
@@ -78,17 +84,22 @@ export async function GET(
 // PUT - Atualizar empresa
 export async function PUT(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    context: any
 ) {
     try {
         verifySuperAdmin(request)
-
+        const params = await context.params;
+        const id = params.id;
         const data = await request.json()
+
+        if (!id) {
+            return NextResponse.json({ error: 'ID não fornecido' }, { status: 400 });
+        }
 
         // 1. Atualizar dados da empresa
         // @ts-ignore
         const empresa = await prisma.empresa.update({
-            where: { id: params.id },
+            where: { id: id },
             data: {
                 nome: data.nome,
                 cnpj: data.cnpj,
@@ -120,7 +131,7 @@ export async function PUT(
             // Busca o usuário admin desta empresa
             const admin = await prisma.usuario.findFirst({
                 where: {
-                    empresaId: params.id,
+                    empresaId: id,
                     role: 'admin'
                 }
             })
@@ -138,7 +149,7 @@ export async function PUT(
                 // Se NÃO existe nenhum admin, cria o primeiro agora!
                 await prisma.usuario.create({
                     data: {
-                        empresaId: params.id,
+                        empresaId: id,
                         nome: data.nome,
                         email: data.email?.trim().toLowerCase(),
                         senha: hashedPassword,
@@ -162,13 +173,19 @@ export async function PUT(
 // DELETE - Deletar empresa
 export async function DELETE(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    context: any
 ) {
     try {
         verifySuperAdmin(request)
+        const params = await context.params;
+        const id = params.id;
+
+        if (!id) {
+            return NextResponse.json({ error: 'ID não fornecido' }, { status: 400 });
+        }
 
         await prisma.empresa.delete({
-            where: { id: params.id }
+            where: { id: id }
         })
 
         return NextResponse.json({ message: 'Empresa deletada com sucesso' })
@@ -184,16 +201,22 @@ export async function DELETE(
 // PATCH - Bloquear/Desbloquear empresa
 export async function PATCH(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    context: any
 ) {
     try {
         verifySuperAdmin(request)
+        const params = await context.params;
+        const id = params.id;
+
+        if (!id) {
+            return NextResponse.json({ error: 'ID não fornecido' }, { status: 400 });
+        }
 
         const { bloqueado, motivoBloqueio } = await request.json()
 
         // @ts-ignore
         const empresa = await prisma.empresa.update({
-            where: { id: params.id },
+            where: { id: id },
             data: {
                 bloqueado,
                 motivoBloqueio: bloqueado ? motivoBloqueio : null

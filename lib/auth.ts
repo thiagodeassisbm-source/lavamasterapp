@@ -12,16 +12,28 @@ export interface AuthContext {
 
 export async function getAuthContext(): Promise<AuthContext | null> {
     try {
-        const cookieStore = await cookies();
-        const token = cookieStore.get('auth_token')?.value;
+        const cookieStore = cookies(); // No Next 14, cookies() é síncrono
 
-        if (!token) return null;
+        // Tenta os dois padrões de nome de cookie para garantir compatibilidade total
+        const token = cookieStore.get('auth_token')?.value || cookieStore.get('auth-token')?.value;
+
+        if (!token) {
+            console.log('[AUTH] Nenhum token encontrado nos cookies.');
+            return null;
+        }
 
         const decoded = jwt.verify(token, JWT_SECRET) as any;
 
-        // Superadmin pode vir sem empresaId; demais precisam de empresaId
-        if (!decoded) return null;
-        if (!decoded.empresaId && decoded.role !== 'superadmin') return null;
+        if (!decoded) {
+            console.log('[AUTH] Falha ao decodificar token.');
+            return null;
+        }
+
+        // Se não for superadmin, precisa ter um empresaId vinculado
+        if (!decoded.empresaId && decoded.role !== 'superadmin') {
+            console.log('[AUTH] Token sem empresaId para usuário comum.');
+            return null;
+        }
 
         return {
             userId: decoded.id || decoded.sub,
@@ -29,7 +41,7 @@ export async function getAuthContext(): Promise<AuthContext | null> {
             role: decoded.role || 'usuario'
         };
     } catch (error) {
-        console.error('Auth context error:', error);
+        console.error('[AUTH] Erro crítico na validação do contexto:', error);
         return null;
     }
 }
