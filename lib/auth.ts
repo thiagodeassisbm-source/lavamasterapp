@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 
 // Definição única da chave para evitar divergências
 // Prioriza a variável de ambiente do Vercel/Produção
-const JWT_SECRET = process.env.JWT_SECRET || 'segredo-super-seguro-lava-master-2026';
+const JWT_SECRET = process.env.JWT_SECRET || 'lavamaster2026-segredo';
 
 export interface AuthContext {
     userId: string;

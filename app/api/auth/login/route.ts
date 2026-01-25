@@ -5,7 +5,7 @@ import jwt from 'jsonwebtoken';
 
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_TIME_MS = 15 * 60 * 1000;
-const JWT_SECRET = process.env.JWT_SECRET || 'segredo-super-seguro-lava-master-2026';
+const JWT_SECRET = process.env.JWT_SECRET || 'lavamaster2026-segredo';
 
 export async function POST(request: Request) {
     try {
