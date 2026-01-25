@@ -204,6 +204,17 @@ export default function OrcamentoForm({ onClose, onSave, initialData }: Orcament
                                     </div>
                                 ))}
                             </div>
+
+                            {/* Campo de Observações Restaurado */}
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-slate-300">Observações</label>
+                                <textarea
+                                    {...register('observacoes')}
+                                    rows={3}
+                                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all resize-none"
+                                    placeholder="Observações adicionais para este orçamento..."
+                                />
+                            </div>
                         </div>
 
                         <div className="space-y-6">
