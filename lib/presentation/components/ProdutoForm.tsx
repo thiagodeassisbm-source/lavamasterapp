@@ -52,8 +52,8 @@ export default function ProdutoForm({ onClose, onSave, initialData }: ProdutoFor
     };
 
     return (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
-            <div className="glass-effect rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-hidden border border-white/20 shadow-2xl animate-scale-in">
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 animate-fade-in">
+            <div className="glass-effect rounded-3xl w-full max-w-7xl max-h-[90vh] overflow-hidden border border-white/20 shadow-2xl animate-scale-in bg-slate-900/95">
                 {/* Header */}
                 <div className="bg-gradient-to-r from-cyan-500/20 to-cyan-600/20 border-b border-white/10 p-6">
                     <div className="flex items-center justify-between">
