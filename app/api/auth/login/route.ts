@@ -9,9 +9,9 @@ const JWT_SECRET = process.env.JWT_SECRET || 'lavamaster2026-segredo';
 
 export async function POST(request: Request) {
     try {
-        const { email, password } = await request.json();
+        const { email, password, rememberMe } = await request.json();
         const sanitizedEmail = email?.trim().toLowerCase();
-        console.log(`[AUTH] Tentativa de login para: ${sanitizedEmail}`);
+        console.log(`[AUTH] Tentativa de login para: ${sanitizedEmail} (Lembrar: ${!!rememberMe})`);
 
         if (!sanitizedEmail || !password) {
             return NextResponse.json({ error: 'Email e senha são obrigatórios' }, { status: 400 });
@@ -72,6 +72,9 @@ export async function POST(request: Request) {
             data: { failedLoginAttempts: 0, lockoutUntil: null }
         });
 
+        const expiresIn = rememberMe ? '30d' : '1d';
+        const maxAge = rememberMe ? 30 * 24 * 60 * 60 : 24 * 60 * 60; // 30 dias ou 24 horas
+
         const token = jwt.sign(
             {
                 id: usuario.id,
@@ -80,7 +83,7 @@ export async function POST(request: Request) {
                 empresaId: usuario.empresaId ?? null
             },
             JWT_SECRET,
-            { expiresIn: '1d' }
+            { expiresIn }
         );
 
         const { senha: _, ...usuarioSemSenha } = usuario;
@@ -94,10 +97,10 @@ export async function POST(request: Request) {
         // Cookie Principal (Padrão moderno com underline)
         response.cookies.set('auth_token', token, {
             httpOnly: true,
-            secure: true, // Força secure pois você está usando HTTPS no domínio .com.br
+            secure: true,
             sameSite: 'lax',
             path: '/',
-            maxAge: 86400 // 24 horas
+            maxAge
         });
 
         // Cookie de Compatibilidade (Padrão antigo com hífen)
@@ -106,7 +109,7 @@ export async function POST(request: Request) {
             secure: true,
             sameSite: 'lax',
             path: '/',
-            maxAge: 86400
+            maxAge
         });
 
         return response;

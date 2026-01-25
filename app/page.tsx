@@ -14,12 +14,41 @@ export default function LoginPage() {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
+    rememberMe: false
   });
 
-  // Ensure animations play after mount
+  // Ensure animations play after mount and check for remembered credentials
   useEffect(() => {
     setIsMounted(true);
-  }, []);
+
+    // Check if user is already logged in (Auto-redirect)
+    const checkSession = async () => {
+      const token = localStorage.getItem('auth_token');
+      if (token) {
+        try {
+          const res = await fetch('/api/usuarios/me');
+          if (res.ok) {
+            router.push('/dashboard');
+          }
+        } catch (e) {
+          console.error("Session check failed", e);
+        }
+      }
+    };
+    checkSession();
+
+    // Load remembered credentials
+    const savedEmail = localStorage.getItem('remember_email');
+    const savedPass = localStorage.getItem('remember_pass');
+    if (savedEmail && savedPass) {
+      setFormData(prev => ({
+        ...prev,
+        email: savedEmail,
+        password: savedPass,
+        rememberMe: true
+      }));
+    }
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,7 +58,11 @@ export default function LoginPage() {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+          rememberMe: formData.rememberMe
+        })
       });
 
       const data = await response.json();
@@ -38,12 +71,21 @@ export default function LoginPage() {
         throw new Error(data.error || 'Falha ao entrar');
       }
 
+      // Handle Remember Me
+      if (formData.rememberMe) {
+        localStorage.setItem('remember_email', formData.email);
+        localStorage.setItem('remember_pass', formData.password);
+      } else {
+        localStorage.removeItem('remember_email');
+        localStorage.removeItem('remember_pass');
+      }
+
       toast.success(`Bem-vindo, ${data.user.nome}!`);
 
       localStorage.setItem('auth_token', data.token);
       localStorage.setItem('user_data', JSON.stringify(data.user));
 
-      router.push('/dashboard');
+      router.push(data.redirect || '/dashboard');
 
     } catch (error) {
       console.error(error);
@@ -58,9 +100,10 @@ export default function LoginPage() {
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value, type, checked } = e.target;
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value,
+      [name]: type === 'checkbox' ? checked : value,
     });
   };
 
@@ -168,7 +211,19 @@ export default function LoginPage() {
                         {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                       </button>
                     </div>
-                    <div className="flex justify-end">
+                    <div className="flex items-center justify-between">
+                      <label className="flex items-center gap-2 cursor-pointer group/check">
+                        <div className="relative flex items-center h-5">
+                          <input
+                            name="rememberMe"
+                            type="checkbox"
+                            checked={formData.rememberMe}
+                            onChange={handleChange}
+                            className="w-4 h-4 rounded border-slate-800 bg-slate-950/50 text-blue-500 focus:ring-blue-500/20 focus:ring-offset-0 transition-all cursor-pointer"
+                          />
+                        </div>
+                        <span className="text-sm text-slate-500 group-hover/check:text-slate-300 transition-colors">Manter conectado</span>
+                      </label>
                       <a href="/forgot-password" className="text-sm text-slate-500 hover:text-blue-400 transition-colors">Esqueceu sua senha?</a>
                     </div>
                   </div>
