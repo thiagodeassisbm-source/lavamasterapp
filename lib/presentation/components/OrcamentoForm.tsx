@@ -100,7 +100,16 @@ export default function OrcamentoForm({ onClose, onSave, initialData }: Orcament
             // Tenta extrair o veículo das observações se não estiver explícito
             let veiculoMemo = initialData.veiculo || '';
             if (!veiculoMemo && initialData.observacoes?.includes('Veículo:')) {
-                veiculoMemo = initialData.observacoes.split('Veículo:')[1].split('\n')[0].trim();
+                const parts = initialData.observacoes.split('Veículo:');
+                if (parts[1]) veiculoMemo = parts[1].split('\n')[0].trim();
+            }
+
+            // Se ainda assim não tiver, busca o primeiro veículo do cliente carregado
+            if (!veiculoMemo && initialData.clienteId && initialData.clienteId !== '0') {
+                const cli = clientes.find(c => c.id === initialData.clienteId);
+                if (cli && cli.veiculos && cli.veiculos.length > 0) {
+                    veiculoMemo = `${cli.veiculos[0].modelo} - ${cli.veiculos[0].placa}`;
+                }
             }
 
             reset({
