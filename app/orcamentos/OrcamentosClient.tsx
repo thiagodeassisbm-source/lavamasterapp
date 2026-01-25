@@ -131,15 +131,26 @@ export default function OrcamentosClient({ initialOrcamentos }: OrcamentosClient
     };
 
     const handleEdit = (orcamento: any) => {
+        // Formata a data para YYYY-MM-DD para o input de data do navegador
+        const formattedValidade = orcamento.validade ? orcamento.validade.split('T')[0] : '';
+
         setSelectedOrcamento({
             ...orcamento,
             clienteNome: orcamento.cliente,
             clienteId: orcamento.clienteId,
             veiculo: orcamento.veiculo,
-            itens: orcamento.itens || [],
-            desconto: orcamento.desconto,
+            // Garante que os itens tenham os nomes de campos que o Zod/Form esperam
+            itens: (orcamento.itens || []).map((it: any) => ({
+                servicoId: it.servicoId,
+                nome: it.nome,
+                quantidade: Number(it.quantidade),
+                precoUnitario: Number(it.precoUnitario),
+                total: Number(it.total)
+            })),
+            desconto: Number(orcamento.desconto || 0),
             observacoes: orcamento.observacoes,
-            dataValidade: orcamento.validade,
+            dataValidade: formattedValidade,
+            status: orcamento.status
         });
         setShowForm(true);
     };
