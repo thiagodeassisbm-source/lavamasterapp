@@ -147,17 +147,16 @@ export default function AgendaClient({ initialAgendamentos, initialWhatsappTempl
     const confirmDelete = async () => {
         if (agendamentoToDelete) {
             try {
-                const res = await fetch('/api/agendamentos', {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id: agendamentoToDelete, status: 'cancelado' })
+                const res = await fetch(`/api/agendamentos?id=${agendamentoToDelete}`, {
+                    method: 'DELETE',
                 });
 
                 if (res.ok) {
-                    showToast('Cancelado!', 'Agendamento cancelado com sucesso.', 'success');
+                    showToast('Excluído!', 'Agendamento removido com sucesso.', 'success');
                     fetchAgendamentos();
                 } else {
-                    showToast('Erro', 'Não foi possível cancelar.', 'error');
+                    const err = await res.json();
+                    showToast('Erro', err.error || 'Não foi possível excluir.', 'error');
                 }
             } catch (error) {
                 showToast('Erro', 'Erro de conexão.', 'error');

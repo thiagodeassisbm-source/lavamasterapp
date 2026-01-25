@@ -221,3 +221,38 @@ export async function PUT(request: NextRequest) {
         return NextResponse.json({ error: 'Erro ao atualizar agendamento' }, { status: 500 });
     }
 }
+
+export async function DELETE(request: NextRequest) {
+    try {
+        const ctx = await getAuthContext();
+        if (!ctx) {
+            return NextResponse.json({ error: 'Não autorizado' }, { status: 401 });
+        }
+
+        const { searchParams } = new URL(request.url);
+        const id = searchParams.get('id');
+
+        if (!id) {
+            return NextResponse.json({ error: 'ID é obrigatório' }, { status: 400 });
+        }
+
+        // Verificar se pertence à empresa
+        const existing = await prisma.agendamento.findFirst({
+            where: ctx.role !== 'superadmin' ? { id: id, empresaId: ctx.empresaId! } : { id: id }
+        });
+
+        if (!existing) {
+            return NextResponse.json({ error: 'Agendamento não encontrado' }, { status: 404 });
+        }
+
+        await prisma.agendamento.delete({
+            where: { id }
+        });
+
+        return NextResponse.json({ success: true });
+
+    } catch (error) {
+        console.error('Erro ao excluir agendamento:', error);
+        return NextResponse.json({ error: 'Erro ao excluir agendamento' }, { status: 500 });
+    }
+}
