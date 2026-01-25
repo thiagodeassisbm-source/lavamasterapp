@@ -40,6 +40,7 @@ export default function OrcamentoForm({ onClose, onSave, initialData }: Orcament
     const [servicosDisponiveis, setServicosDisponiveis] = useState<any[]>([]);
     const [isClienteCadastrado, setIsClienteCadastrado] = useState(true);
     const [isMounted, setIsMounted] = useState(false);
+    const [dataLoaded, setDataLoaded] = useState(false);
 
     const isEdit = !!initialData?.id;
 
@@ -70,7 +71,7 @@ export default function OrcamentoForm({ onClose, onSave, initialData }: Orcament
         name: 'itens',
     });
 
-    // 1. Carregar Clientes e Serviços do Banco
+    // 1. Carregar Dados do Servidor
     useEffect(() => {
         setIsMounted(true);
         const fetchData = async () => {
@@ -81,52 +82,49 @@ export default function OrcamentoForm({ onClose, onSave, initialData }: Orcament
                 ]);
                 if (resCli.ok) setClientes(await resCli.json());
                 if (resServ.ok) setServicosDisponiveis(await resServ.json());
+                setDataLoaded(true);
             } catch (error) {
-                console.error('Erro ao buscar dados:', error);
+                console.error('Erro:', error);
+                setDataLoaded(true);
             }
         };
         fetchData();
     }, []);
 
-    // 2. Lógica de Preenchimento (Reset)
+    // 2. Preenchimento (Reset) - SÓ RODA QUANDO OS CLIENTES CHEGAREM
     useEffect(() => {
-        if (isMounted && initialData) {
+        if (isMounted && dataLoaded && initialData) {
             const isManual = !initialData.clienteId || initialData.clienteId === '0';
             setIsClienteCadastrado(!isManual);
 
-            // Mapeamento minucioso dos itens para evitar valores zerados
-            const mappedItens = (initialData.itens || []).map((it: any) => {
-                // Tenta pegar o preço de várias fontes comuns para garantir o valor
-                const price = Number(it.precoUnitario ?? it.valorUnitario ?? it.preco ?? 0);
-                const quantity = Number(it.quantidade ?? 1);
-
-                return {
-                    servicoId: it.servicoId || undefined,
-                    produtoId: it.produtoId || undefined,
-                    nome: it.nome || it.descricao || it.servico?.nome || it.produto?.nome || 'Item',
-                    quantidade: quantity,
-                    precoUnitario: price,
-                    total: quantity * price
-                };
-            });
+            // Tenta extrair o veículo das observações se não estiver explícito
+            let veiculoMemo = initialData.veiculo || '';
+            if (!veiculoMemo && initialData.observacoes?.includes('Veículo:')) {
+                veiculoMemo = initialData.observacoes.split('Veículo:')[1].split('\n')[0].trim();
+            }
 
             reset({
                 clienteId: initialData.clienteId || (isManual ? '0' : ''),
-                clienteNome: initialData.clienteNome || initialData.cliente || '',
-                veiculo: initialData.veiculo || '',
-                dataValidade: initialData.validade?.split('T')[0] || initialData.dataValidade || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                clienteNome: initialData.clienteNome || initialData.cliente?.nome || initialData.cliente || '',
+                veiculo: veiculoMemo,
+                dataValidade: initialData.validade?.split('T')[0] || initialData.dataValidade || '',
                 observacoes: initialData.observacoes || '',
                 status: initialData.status || 'pendente',
                 desconto: Number(initialData.desconto || 0),
-                itens: mappedItens
+                itens: (initialData.itens || []).map((it: any) => ({
+                    servicoId: it.servicoId,
+                    produtoId: it.produtoId,
+                    nome: it.nome || it.descricao || it.servico?.nome || it.produto?.nome || 'Item',
+                    quantidade: Number(it.quantidade || 1),
+                    precoUnitario: Number(it.precoUnitario || it.valorUnitario || 0),
+                    total: Number(it.total || it.valorTotal || 0)
+                }))
             });
         }
-    }, [isMounted, initialData, reset]);
+    }, [isMounted, dataLoaded, initialData, reset]);
 
     const watchItens = watch('itens');
     const watchDesconto = watch('desconto') || 0;
-
-    // Cálculo dinâmico dos totais
     const subtotal = watchItens?.reduce((acc, item) => acc + (Number(item.quantidade || 0) * Number(item.precoUnitario || 0)), 0) || 0;
     const totalFinal = Math.max(0, subtotal - watchDesconto);
 
@@ -135,11 +133,9 @@ export default function OrcamentoForm({ onClose, onSave, initialData }: Orcament
         const cli = clientes.find(c => c.id === id);
         if (cli) {
             setValue('clienteNome', cli.nome);
-            if (cli.veiculos?.length === 1) {
+            if (cli.veiculos && cli.veiculos.length > 0) {
                 const v = cli.veiculos[0];
                 setValue('veiculo', `${v.modelo} - ${v.placa}`);
-            } else {
-                setValue('veiculo', '');
             }
         }
     };
@@ -161,8 +157,15 @@ export default function OrcamentoForm({ onClose, onSave, initialData }: Orcament
     const onSubmit = async (formData: OrcamentoFormData) => {
         setIsSubmitting(true);
         try {
+            // Garante que o veículo fique registrado nas observações para não perder
+            let finalObs = formData.observacoes || '';
+            if (formData.veiculo && !finalObs.includes('Veículo:')) {
+                finalObs = `Veículo: ${formData.veiculo}\n${finalObs}`;
+            }
+
             const finalData = {
                 ...formData,
+                observacoes: finalObs,
                 valorTotal: subtotal,
                 valorFinal: totalFinal,
                 itens: formData.itens.map(it => ({
@@ -184,9 +187,8 @@ export default function OrcamentoForm({ onClose, onSave, initialData }: Orcament
 
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="glass-effect rounded-3xl w-full max-w-5xl max-h-[90vh] overflow-hidden border border-white/20 flex flex-col shadow-2xl animate-scale-in">
+            <div className="glass-effect rounded-3xl w-full max-w-5xl max-h-[90vh] overflow-hidden border border-white/20 flex flex-col shadow-2xl">
 
-                {/* Cabeçalho */}
                 <div className="bg-gradient-to-r from-orange-500/20 to-red-500/20 border-b border-white/10 p-6 flex justify-between items-center group">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl bg-orange-600 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
@@ -197,23 +199,30 @@ export default function OrcamentoForm({ onClose, onSave, initialData }: Orcament
                             {isEdit && <p className="text-[10px] text-slate-500 font-mono tracking-tighter">#{initialData.id}</p>}
                         </div>
                     </div>
-                    <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-xl transition-all hover:rotate-90">
+                    <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-xl transition-all">
                         <X className="w-6 h-6 text-slate-400" />
                     </button>
                 </div>
 
                 <form onSubmit={handleSubmit(onSubmit)} className="flex-1 overflow-y-auto p-6 space-y-6">
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {!dataLoaded && isEdit && (
+                        <div className="flex items-center justify-center p-8 gap-3 text-white bg-white/5 rounded-2xl animate-pulse">
+                            <div className="w-5 h-5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+                            Carregando dados do orçamento...
+                        </div>
+                    )}
 
-                        {/* Coluna Principal */}
+                    <div className={`grid grid-cols-1 lg:grid-cols-3 gap-6 transition-opacity duration-300 ${!dataLoaded && isEdit ? 'opacity-30 pointer-events-none' : 'opacity-100'}`}>
                         <div className="lg:col-span-2 space-y-6">
-                            {/* Cliente */}
+
                             <div className="bg-white/5 rounded-2xl p-6 border border-white/10 space-y-4">
                                 <div className="flex justify-between items-center">
                                     <h3 className="text-white font-semibold flex items-center gap-2"><User className="w-4 h-4 text-orange-400" /> Cliente</h3>
-                                    <button type="button" onClick={() => { setIsClienteCadastrado(!isClienteCadastrado); setValue('clienteId', isClienteCadastrado ? '0' : ''); }} className="text-xs text-orange-400 underline decoration-orange-400/30 underline-offset-4">
-                                        {isClienteCadastrado ? 'Não cadastrado?' : 'Voltar para cadastrados'}
-                                    </button>
+                                    {!isEdit && (
+                                        <button type="button" onClick={() => { setIsClienteCadastrado(!isClienteCadastrado); setValue('clienteId', isClienteCadastrado ? '0' : ''); }} className="text-xs text-orange-400 underline underline-offset-4">
+                                            {isClienteCadastrado ? 'Não cadastrado?' : 'Voltar para cadastrados'}
+                                        </button>
+                                    )}
                                 </div>
 
                                 {isClienteCadastrado ? (
@@ -231,41 +240,38 @@ export default function OrcamentoForm({ onClose, onSave, initialData }: Orcament
                                 </div>
                             </div>
 
-                            {/* Serviços */}
                             <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
                                 <h3 className="text-white font-semibold mb-4 flex items-center gap-2"><DollarSign className="w-4 h-4 text-orange-400" /> Serviços</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-4">
-                                    {servicosDisponiveis.map(s => (
-                                        <button key={s.id} type="button" onClick={() => handleToggleService(s)}
-                                            className={`p-3 rounded-xl border text-left flex justify-between items-center transition-all ${fields.some(f => f.servicoId === s.id) ? 'border-orange-500 bg-orange-500/10' : 'border-white/10 hover:border-white/20'}`}>
-                                            <div><p className="text-white text-sm font-medium">{s.nome}</p><p className="text-[10px] text-slate-400">R$ {Number(s.preco).toFixed(2)}</p></div>
-                                            {fields.some(f => f.servicoId === s.id) && <CheckCircle className="w-4 h-4 text-orange-500 animate-bounce-in" />}
-                                        </button>
-                                    ))}
+                                    {servicosDisponiveis.map(s => {
+                                        const isSelected = fields.some(f => f.servicoId === s.id);
+                                        return (
+                                            <button key={s.id} type="button" onClick={() => handleToggleService(s)}
+                                                className={`p-3 rounded-xl border text-left flex justify-between items-center transition-all ${isSelected ? 'border-orange-500 bg-orange-500/10' : 'border-white/10 hover:border-white/20'}`}>
+                                                <div><p className="text-white text-sm font-medium">{s.nome}</p><p className="text-[10px] text-slate-400">R$ {Number(s.preco).toFixed(2)}</p></div>
+                                                {isSelected && <CheckCircle className="w-4 h-4 text-orange-500" />}
+                                            </button>
+                                        );
+                                    })}
                                 </div>
-
-                                <div className="space-y-2">
-                                    {fields.map((field, index) => (
-                                        <div key={field.id} className="flex gap-2 items-center bg-white/5 p-3 rounded-xl border border-white/5">
-                                            <p className="flex-1 text-white text-sm truncate font-medium">{field.nome}</p>
-                                            <div className="flex items-center gap-1">
-                                                <input type="number" {...register(`itens.${index}.quantidade`, { valueAsNumber: true })} className="w-14 p-1.5 bg-slate-800 rounded-lg text-center text-white text-xs" min="1" />
-                                                <input type="number" {...register(`itens.${index}.precoUnitario`, { valueAsNumber: true })} step="0.01" className="w-24 p-1.5 bg-slate-800 rounded-lg text-right text-white text-xs" />
-                                                <button type="button" onClick={() => remove(index)} className="p-2 text-red-400 hover:bg-red-400/10 rounded-lg"><Trash2 className="w-4 h-4" /></button>
-                                            </div>
+                                {fields.map((field, index) => (
+                                    <div key={field.id} className="flex gap-2 items-center bg-white/5 p-3 rounded-xl mb-2 border border-white/5">
+                                        <p className="flex-1 text-white text-sm truncate">{field.nome || 'Serviço'}</p>
+                                        <div className="flex items-center gap-1">
+                                            <input type="number" {...register(`itens.${index}.quantidade`, { valueAsNumber: true })} className="w-14 p-1.5 bg-slate-800 rounded-lg text-center text-white text-xs border border-white/10" min="1" />
+                                            <input type="number" {...register(`itens.${index}.precoUnitario`, { valueAsNumber: true })} step="0.01" className="w-24 p-1.5 bg-slate-800 rounded-lg text-right text-white text-xs border border-white/10" />
+                                            <button type="button" onClick={() => remove(index)} className="p-2 text-red-400 hover:bg-red-400/10 rounded-lg"><Trash2 className="w-4 h-4" /></button>
                                         </div>
-                                    ))}
-                                </div>
+                                    </div>
+                                ))}
                             </div>
 
-                            {/* Observações RESTAURADO E PROTEGIDO */}
                             <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
                                 <h3 className="text-white font-semibold mb-3">Observações Adicionais</h3>
-                                <textarea {...register('observacoes')} rows={3} className="w-full p-4 bg-slate-900 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-orange-500 resize-none transition-all" placeholder="Escreva observações importantes sobre este orçamento..." />
+                                <textarea {...register('observacoes')} rows={3} className="w-full p-4 bg-slate-900 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-orange-500 resize-none transition-all" placeholder="Observações do orçamento..." />
                             </div>
                         </div>
 
-                        {/* Coluna Resumo */}
                         <div className="space-y-6">
                             <div className="bg-white/5 rounded-2xl p-6 border border-white/10 space-y-4">
                                 <div><label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Validade</label><input type="date" {...register('dataValidade')} className="w-full p-3 bg-slate-900 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-orange-500" /></div>
@@ -273,14 +279,13 @@ export default function OrcamentoForm({ onClose, onSave, initialData }: Orcament
                             </div>
 
                             <div className="bg-slate-900 rounded-3xl p-6 border border-white/10 shadow-2xl space-y-4 relative overflow-hidden">
-                                <div className="absolute top-0 right-0 w-24 h-24 bg-orange-500/10 rounded-full blur-3xl -mr-10 -mt-10" />
-                                <h3 className="text-white font-bold text-lg mb-2 relative z-10">Fechamento</h3>
+                                <h3 className="text-white font-bold text-lg mb-2">Fechamento</h3>
                                 <div className="flex justify-between text-slate-400 text-sm"><span>Subtotal</span><span className="font-mono text-white">R$ {subtotal.toFixed(2)}</span></div>
                                 <div className="flex justify-between items-center text-slate-400 text-sm"><span>Desconto</span><input type="number" {...register('desconto', { valueAsNumber: true })} step="0.01" className="w-24 p-2 bg-white/5 border border-white/10 rounded-lg text-right text-white" /></div>
                                 <div className="border-t border-white/10 pt-4 flex justify-between text-white font-bold text-xl"><span>Total Final</span><span className="text-green-500 font-mono">R$ {totalFinal.toFixed(2)}</span></div>
 
-                                <button type="submit" disabled={isSubmitting} className="w-full mt-4 py-4 bg-gradient-to-r from-orange-500 to-red-600 text-white font-bold rounded-2xl shadow-lg hover:shadow-orange-500/20 transition-all flex items-center justify-center gap-2 group disabled:opacity-50">
-                                    {isSubmitting ? <div className="w-6 h-6 border-4 border-white/30 border-t-white rounded-full animate-spin" /> : <Save className="w-6 h-6 group-hover:scale-110 transition-transform" />}
+                                <button type="submit" disabled={isSubmitting || (!dataLoaded && isEdit)} className="w-full mt-4 py-4 bg-gradient-to-r from-orange-500 to-red-600 text-white font-bold rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50">
+                                    {isSubmitting ? <div className="w-6 h-6 border-4 border-white/30 border-t-white rounded-full animate-spin" /> : <Save className="w-6 h-6" />}
                                     {isEdit ? 'SALVAR ALTERAÇÕES' : 'CONFIRMAR'}
                                 </button>
                             </div>

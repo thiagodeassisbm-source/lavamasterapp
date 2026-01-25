@@ -2,8 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
+const OrcamentoForm = dynamic(() => import('@/lib/presentation/components/OrcamentoForm'), { ssr: false });
+
 import MobileMenu from '@/lib/presentation/components/MobileMenu';
-import OrcamentoForm from '@/lib/presentation/components/OrcamentoForm';
+// import OrcamentoForm from '@/lib/presentation/components/OrcamentoForm'; // Removido import estático
 import ConfirmDialog from '@/lib/presentation/components/ConfirmDialog';
 import Toast, { ToastType } from '@/lib/presentation/components/Toast';
 import { FileText, Plus, Clock, CheckCircle, XCircle, Trash2, UserPlus, DollarSign } from 'lucide-react';
