@@ -252,10 +252,10 @@ export default function Dashboard() {
     const [isProfileOpen, setIsProfileOpen] = useState(false);
 
     return (
-        <div className="min-h-screen p-4 lg:p-8 space-y-6">
+        <div className="min-h-screen p-4 lg:p-8 space-y-6 pt-14 lg:pt-8 pb-24 lg:pb-8">
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center animate-slide-down gap-4">
-                <div>
+                <div className="pl-1 lg:pl-0">
                     <h1 className="text-3xl lg:text-4xl font-bold text-white mb-2">
                         Dashboard
                     </h1>

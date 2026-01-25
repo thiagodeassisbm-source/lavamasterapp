@@ -162,6 +162,9 @@ export default function LoginPage() {
 
             <div className="relative z-10 space-y-8">
               <div className="text-center space-y-2">
+                <div className="flex justify-center lg:hidden mb-4">
+                  <LogoLM size="lg" />
+                </div>
                 <h2 className="text-3xl font-bold text-white">Login</h2>
                 <p className="text-slate-400">Acesse sua conta para continuar.</p>
               </div>

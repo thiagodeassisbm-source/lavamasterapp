@@ -29,6 +29,7 @@ import {
     Building2
 } from 'lucide-react';
 import LogoLM from './LogoLM';
+import BottomNavbar from './BottomNavbar';
 
 interface MenuItem {
     icon: React.ElementType;
@@ -106,10 +107,10 @@ export default function MobileMenu() {
             {/* Menu Button */}
             <button
                 onClick={toggleMenu}
-                className="fixed top-4 left-4 z-50 p-2.5 rounded-xl glass-effect hover:bg-white/10 transition-all duration-300 lg:hidden"
+                className="fixed top-2 left-2 z-[60] p-3 rounded-2xl bg-slate-900/50 backdrop-blur-md border border-white/10 hover:bg-white/10 transition-all duration-300 lg:hidden shadow-lg shadow-black/20"
                 aria-label="Toggle menu"
             >
-                {isOpen ? <X className="w-6 h-6 text-white" /> : <Menu className="w-6 h-6 text-white" />}
+                {isOpen ? <X className="w-5 h-5 text-white" /> : <Menu className="w-5 h-5 text-white" />}
             </button>
 
             {/* Overlay */}
@@ -232,6 +233,8 @@ export default function MobileMenu() {
                     </div>
                 </div>
             </aside>
+
+            <BottomNavbar />
         </>
     );
 }
