@@ -39,7 +39,7 @@ interface MenuItem {
 
 const menuItems: MenuItem[] = [
     { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
-    { icon: PlayCircle, label: 'Iniciar Serviço', href: '/novo-atendimento' },
+    { icon: PlayCircle, label: 'Iniciar Atendimento', href: '/novo-atendimento' },
     {
         icon: Calendar,
         label: 'Agenda',

@@ -212,7 +212,7 @@ export default function NovoAtendimentoClient({
 
             if (!res.ok) throw new Error('Falha ao salvar');
 
-            showToast('Sucesso', editingId ? 'Atendimento atualizado!' : 'Serviço iniciado com sucesso!', 'success');
+            showToast('Sucesso', editingId ? 'Atendimento atualizado!' : 'Atendimento iniciado com sucesso!', 'success');
             setTimeout(() => router.push('/atendimentos'), 1000);
 
         } catch (error) {
@@ -228,7 +228,7 @@ export default function NovoAtendimentoClient({
             <main className="flex-1 lg:ml-72 p-4 lg:p-6 flex flex-col lg:flex-row gap-6 h-screen overflow-hidden">
                 <div className="flex-1 flex flex-col gap-6 overflow-y-auto pr-2 pb-20 lg:pb-0">
                     <div>
-                        <h1 className="text-3xl font-bold text-white mb-2">{editingId ? 'Editar Serviço' : 'Iniciar Serviço'}</h1>
+                        <h1 className="text-3xl font-bold text-white mb-2">{editingId ? 'Editar Atendimento' : 'Iniciar Atendimento'}</h1>
                         <p className="text-slate-400">Gerencie o atendimento do cliente</p>
                     </div>
 
@@ -388,7 +388,7 @@ export default function NovoAtendimentoClient({
                             className={`w-full py-4 rounded-2xl font-bold text-lg flex items-center justify-center gap-2 transition-all ${(!clienteSelecionado || carrinho.length === 0) ? 'bg-slate-800 text-slate-600' : 'bg-green-500 text-white shadow-lg shadow-green-500/20'}`}
                         >
                             {editingId ? <Save className="w-5 h-5" /> : <CheckCircle className="w-5 h-5" />}
-                            {editingId ? 'Salvar Alterações' : 'Iniciar Serviço'}
+                            {editingId ? 'Salvar Alterações' : 'Iniciar Atendimento'}
                         </button>
                     </div>
                 </div>
