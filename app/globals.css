@@ -84,6 +84,14 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
   .gradient-border {
     position: relative;
     background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(6, 182, 212, 0.1) 100%);
