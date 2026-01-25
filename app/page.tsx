@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Mail, Lock, Eye, EyeOff, Wrench, ArrowRight, CheckCircle } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, Wrench, ArrowRight, CheckCircle, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 import LogoLM from '@/lib/presentation/components/LogoLM';
 
@@ -219,8 +219,11 @@ export default function LoginPage() {
                             type="checkbox"
                             checked={formData.rememberMe}
                             onChange={handleChange}
-                            className="w-4 h-4 rounded border-slate-800 bg-slate-950/50 text-blue-500 focus:ring-blue-500/20 focus:ring-offset-0 transition-all cursor-pointer"
+                            className="sr-only"
                           />
+                          <div className={`w-5 h-5 rounded border border-slate-800 bg-slate-950/50 flex items-center justify-center transition-all group-hover/check:border-blue-500/50 ${formData.rememberMe ? 'border-blue-500/50' : ''}`}>
+                            {formData.rememberMe && <Check className="w-3.5 h-3.5 text-blue-500" strokeWidth={4} />}
+                          </div>
                         </div>
                         <span className="text-sm text-slate-500 group-hover/check:text-slate-300 transition-colors">Manter conectado</span>
                       </label>
