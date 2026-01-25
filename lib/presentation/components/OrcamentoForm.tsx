@@ -199,7 +199,7 @@ export default function OrcamentoForm({ onClose, onSave, initialData }: Orcament
                                     <div key={field.id} className="flex gap-2 items-center bg-white/5 p-2 rounded-lg mb-2">
                                         <p className="flex-1 text-white text-sm truncate">{field.nome}</p>
                                         <input type="number" {...register(`itens.${index}.quantidade`, { valueAsNumber: true })} className="w-16 p-1 bg-slate-800 rounded text-center text-white text-sm" />
-                                        <input type="number" {...register(`itens.${index}.precoUnitario`, { valueAsNumber: true })} className="w-20 p-1 bg-slate-800 rounded text-right text-white text-sm" />
+                                        <input type="number" {...register(`itens.${index}.precoUnitario`, { valueAsNumber: true })} step="0.01" className="w-20 p-1 bg-slate-800 rounded text-right text-white text-sm" />
                                         <button type="button" onClick={() => remove(index)} className="p-1 text-red-400"><Trash2 className="w-4 h-4" /></button>
                                     </div>
                                 ))}
@@ -224,7 +224,7 @@ export default function OrcamentoForm({ onClose, onSave, initialData }: Orcament
                             </div>
                             <div className="bg-slate-900 rounded-2xl p-6 border border-white/10 shadow-xl space-y-4">
                                 <div className="flex justify-between text-slate-400 text-sm"><span>Subtotal</span><span>R$ {subtotal.toFixed(2)}</span></div>
-                                <div className="flex justify-between items-center text-slate-400 text-sm"><span>Desconto</span><input type="number" {...register('desconto', { valueAsNumber: true })} className="w-20 p-1 bg-white/5 rounded text-right text-white" /></div>
+                                <div className="flex justify-between items-center text-slate-400 text-sm"><span>Desconto</span><input type="number" {...register('desconto', { valueAsNumber: true })} step="0.01" className="w-20 p-1 bg-white/5 rounded text-right text-white" /></div>
                                 <div className="border-t border-white/10 pt-4 flex justify-between text-white font-bold text-lg"><span>Total</span><span className="text-green-400">R$ {totalFinal.toFixed(2)}</span></div>
                                 <button type="submit" disabled={isSubmitting} className="w-full py-4 bg-gradient-to-r from-orange-500 to-red-600 text-white font-bold rounded-xl shadow-lg flex items-center justify-center gap-2">
                                     {isSubmitting ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save className="w-5 h-5" />}
