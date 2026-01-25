@@ -91,6 +91,7 @@ model Usuario {
   vendas        Venda[]
 
   @@unique([empresaId, email])
+  @@index([empresaId])
   @@map("usuarios")
 }
 
@@ -123,6 +124,7 @@ model Cliente {
   veiculos      Veiculo[]
 
   @@unique([empresaId, cpf])
+  @@index([empresaId])
   @@map("clientes")
 }
 
@@ -142,6 +144,7 @@ model Veiculo {
   cliente      Cliente       @relation(fields: [clienteId], references: [id], onDelete: Cascade)
   agendamentos Agendamento[]
 
+  @@index([clienteId])
   @@map("veiculos")
 }
 
@@ -171,6 +174,9 @@ model Agendamento {
   usuario   Usuario?           @relation(fields: [usuarioId], references: [id])
   servicos  AgendamentoServico[]
 
+  @@index([empresaId])
+  @@index([dataHora])
+  @@index([clienteId])
   @@map("agendamentos")
 }
 
@@ -212,6 +218,7 @@ model Servico {
   itensVenda           ItemVenda[]
   itensOrcamento       ItemOrcamento[]
 
+  @@index([empresaId])
   @@map("servicos")
 }
 
@@ -238,6 +245,7 @@ model Produto {
   itensOrcamento  ItemOrcamento[]
 
   @@unique([empresaId, codigo])
+  @@index([empresaId])
   @@map("produtos")
 }
 
@@ -282,6 +290,8 @@ model Venda {
   usuario Usuario?    @relation(fields: [usuarioId], references: [id])
   itens   ItemVenda[]
 
+  @@index([empresaId])
+  @@index([clienteId])
   @@map("vendas")
 }
 
@@ -323,6 +333,8 @@ model Orcamento {
   cliente Cliente         @relation(fields: [clienteId], references: [id])
   itens   ItemOrcamento[]
 
+  @@index([empresaId])
+  @@index([clienteId])
   @@map("orcamentos")
 }
 
@@ -365,6 +377,8 @@ model Despesa {
   // Relações
   empresa Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
 
+  @@index([empresaId])
+  @@index([dataVencimento])
   @@map("despesas")
 }
 
@@ -383,6 +397,8 @@ model Receita {
   // Relações
   empresa Empresa @relation(fields: [empresaId], references: [id], onDelete: Cascade)
 
+  @@index([empresaId])
+  @@index([dataRecebimento])
   @@map("receitas")
 }
 

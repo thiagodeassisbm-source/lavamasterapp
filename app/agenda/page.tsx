@@ -53,27 +53,42 @@ async function getAgendaData() {
     }
 }
 
+async function AgendaContent() {
+    const data = await getAgendaData();
+    return (
+        <AgendaClient
+            initialAgendamentos={data?.agendamentos || []}
+            initialWhatsappTemplate={data?.whatsappTemplate || ''}
+        />
+    );
+}
+
 export default async function AgendaPage() {
     const auth = await getAuthContext();
     if (!auth) {
         redirect('/login');
     }
 
-    const data = await getAgendaData();
-
     return (
         <Suspense fallback={
-            <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-                <div className="flex flex-col items-center gap-4">
-                    <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                    <p className="text-slate-400 font-medium">Carregando agenda...</p>
+            <div className="p-4 lg:p-8 space-y-8 animate-pulse">
+                <div className="flex justify-between items-center mb-12">
+                    <div className="h-10 w-32 bg-white/5 rounded-xl"></div>
+                    <div className="h-12 w-48 bg-blue-500/20 rounded-xl"></div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    {[...Array(4)].map((_, i) => (
+                        <div key={i} className="h-32 bg-white/5 rounded-2xl"></div>
+                    ))}
+                </div>
+                <div className="space-y-4">
+                    {[...Array(3)].map((_, i) => (
+                        <div key={i} className="h-48 bg-white/5 rounded-2xl"></div>
+                    ))}
                 </div>
             </div>
         }>
-            <AgendaClient
-                initialAgendamentos={data?.agendamentos || []}
-                initialWhatsappTemplate={data?.whatsappTemplate || ''}
-            />
+            <AgendaContent />
         </Suspense>
     );
 }

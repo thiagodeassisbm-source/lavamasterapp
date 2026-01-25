@@ -92,6 +92,34 @@ body {
     padding-bottom: env(safe-area-inset-bottom);
   }
 
+  .loading-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, #3b82f6, #06b6d4, transparent);
+    z-index: 9999;
+    animation: loading-progress 2s infinite ease-in-out;
+    transform-origin: left;
+  }
+
+  @keyframes loading-progress {
+    0% {
+      transform: scaleX(0);
+      opacity: 0;
+    }
+
+    50% {
+      opacity: 1;
+    }
+
+    100% {
+      transform: scaleX(1);
+      opacity: 0;
+    }
+  }
+
   .gradient-border {
     position: relative;
     background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(6, 182, 212, 0.1) 100%);

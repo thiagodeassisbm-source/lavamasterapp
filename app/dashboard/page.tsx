@@ -109,12 +109,7 @@ async function getDashboardData() {
     }
 }
 
-export default async function DashboardPage() {
-    const auth = await getAuthContext();
-    if (!auth) {
-        redirect('/login');
-    }
-
+async function DashboardContent() {
     const data = await getDashboardData();
 
     if (!data) {
@@ -132,13 +127,38 @@ export default async function DashboardPage() {
     }
 
     return (
-        <Suspense fallback={<div className="p-8 text-white">Carregando painel...</div>}>
-            <DashboardClient
-                initialStats={data.stats}
-                initialRecentActivities={data.recentActivities}
-                initialTodaysAppointments={data.todaysAppointments}
-                initialWhatsappTemplate={data.whatsappTemplate}
-            />
+        <DashboardClient
+            initialStats={data.stats}
+            initialRecentActivities={data.recentActivities}
+            initialTodaysAppointments={data.todaysAppointments}
+            initialWhatsappTemplate={data.whatsappTemplate}
+        />
+    );
+}
+
+export default async function DashboardPage() {
+    const auth = await getAuthContext();
+    if (!auth) {
+        redirect('/login');
+    }
+
+    return (
+        <Suspense fallback={
+            <div className="p-4 lg:p-8 space-y-8 animate-pulse">
+                <div className="h-12 w-48 bg-white/5 rounded-xl"></div>
+                <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
+                    {[...Array(6)].map((_, i) => (
+                        <div key={i} className="aspect-square bg-white/5 rounded-[2rem]"></div>
+                    ))}
+                </div>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    {[...Array(4)].map((_, i) => (
+                        <div key={i} className="aspect-square bg-white/5 rounded-[2rem]"></div>
+                    ))}
+                </div>
+            </div>
+        }>
+            <DashboardContent />
         </Suspense>
     );
 }
