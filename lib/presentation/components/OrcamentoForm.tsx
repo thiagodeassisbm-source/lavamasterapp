@@ -88,34 +88,40 @@ export default function OrcamentoForm({ onClose, onSave, initialData }: Orcament
         fetchData();
     }, []);
 
-    // 2. Lógica de Preenchimento (Reset) - Só roda quando Clientes e InitialData estão prontos
+    // 2. Lógica de Preenchimento (Reset)
     useEffect(() => {
-        if (isMounted && initialData && (clientes.length > 0 || !isClienteCadastrado)) {
-            // Sincroniza o modo (cadastrado ou não)
+        if (isMounted && initialData) {
             const isManual = !initialData.clienteId || initialData.clienteId === '0';
             setIsClienteCadastrado(!isManual);
 
-            // Reseta o formulário com os dados reais mapeados corretamente
+            // Mapeamento minucioso dos itens para evitar valores zerados
+            const mappedItens = (initialData.itens || []).map((it: any) => {
+                // Tenta pegar o preço de várias fontes comuns para garantir o valor
+                const price = Number(it.precoUnitario ?? it.valorUnitario ?? it.preco ?? 0);
+                const quantity = Number(it.quantidade ?? 1);
+
+                return {
+                    servicoId: it.servicoId || undefined,
+                    produtoId: it.produtoId || undefined,
+                    nome: it.nome || it.descricao || it.servico?.nome || it.produto?.nome || 'Item',
+                    quantidade: quantity,
+                    precoUnitario: price,
+                    total: quantity * price
+                };
+            });
+
             reset({
                 clienteId: initialData.clienteId || (isManual ? '0' : ''),
-                clienteNome: initialData.cliente || initialData.clienteNome || '',
+                clienteNome: initialData.clienteNome || initialData.cliente || '',
                 veiculo: initialData.veiculo || '',
-                dataValidade: initialData.validade?.split('T')[0] || initialData.dataValidade || '',
+                dataValidade: initialData.validade?.split('T')[0] || initialData.dataValidade || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
                 observacoes: initialData.observacoes || '',
                 status: initialData.status || 'pendente',
                 desconto: Number(initialData.desconto || 0),
-                itens: (initialData.itens || []).map((it: any) => ({
-                    servicoId: it.servicoId,
-                    produtoId: it.produtoId,
-                    nome: it.nome || it.descricao || 'Item',
-                    quantidade: Number(it.quantidade || 1),
-                    // CORREÇÃO CRUCIAL: Mapeia valorUnitario para precoUnitario
-                    precoUnitario: Number(it.precoUnitario || it.valorUnitario || 0),
-                    total: Number(it.total || it.valorTotal || 0)
-                }))
+                itens: mappedItens
             });
         }
-    }, [isMounted, initialData, clientes, reset]);
+    }, [isMounted, initialData, reset]);
 
     const watchItens = watch('itens');
     const watchDesconto = watch('desconto') || 0;

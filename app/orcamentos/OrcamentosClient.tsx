@@ -78,23 +78,8 @@ export default function OrcamentosClient({ initialOrcamentos }: OrcamentosClient
     };
 
     const handleEdit = (orcamento: any) => {
-        // Formata para o formulário
-        const formatted = {
-            ...orcamento,
-            clienteId: orcamento.clienteId,
-            clienteNome: typeof orcamento.cliente === 'string' ? orcamento.cliente : orcamento.cliente?.nome,
-            dataValidade: orcamento.validade?.split('T')[0],
-            itens: (orcamento.itens || []).map((it: any) => ({
-                servicoId: it.servicoId,
-                produtoId: it.produtoId,
-                nome: it.nome || it.descricao || it.servico?.nome || it.produto?.nome,
-                quantidade: Number(it.quantidade || 0),
-                precoUnitario: Number(it.precoUnitario || it.valorUnitario || 0),
-                total: Number(it.total || it.valorTotal || 0)
-            })),
-            desconto: Number(orcamento.desconto || 0)
-        };
-        setSelectedOrcamento(formatted);
+        // Passa o orçamento completo para o formulário tratar
+        setSelectedOrcamento(orcamento);
         setShowForm(true);
     };
 
