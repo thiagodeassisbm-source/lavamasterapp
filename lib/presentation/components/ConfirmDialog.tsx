@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertTriangle, X } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Info, X } from 'lucide-react';
 
 interface ConfirmDialogProps {
     isOpen: boolean;
@@ -10,21 +10,29 @@ interface ConfirmDialogProps {
     cancelText?: string;
     onConfirm: () => void;
     onCancel: () => void;
-    type?: 'danger' | 'warning' | 'info';
+    type?: 'danger' | 'warning' | 'info' | 'success';
 }
 
 const typeConfig = {
     danger: {
         iconBg: 'from-red-400 to-rose-500',
         confirmButton: 'from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 shadow-red-500/30',
+        icon: AlertTriangle
     },
     warning: {
         iconBg: 'from-yellow-400 to-orange-500',
         confirmButton: 'from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 shadow-orange-500/30',
+        icon: AlertTriangle
     },
     info: {
         iconBg: 'from-blue-400 to-cyan-500',
         confirmButton: 'from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 shadow-blue-500/30',
+        icon: Info
+    },
+    success: {
+        iconBg: 'from-green-400 to-emerald-500',
+        confirmButton: 'from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 shadow-green-500/30',
+        icon: CheckCircle
     },
 };
 
@@ -40,7 +48,8 @@ export default function ConfirmDialog({
 }: ConfirmDialogProps) {
     if (!isOpen) return null;
 
-    const config = typeConfig[type];
+    const config = typeConfig[type] || typeConfig.danger;
+    const Icon = config.icon;
 
     return (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-fade-in">
@@ -54,15 +63,15 @@ export default function ConfirmDialog({
                 </button>
 
                 {/* Icon */}
-                <div className={`w-20 h-20 rounded-full bg-gradient-to-br ${config.iconBg} flex items-center justify-center mx-auto mb-6`}>
-                    <AlertTriangle className="w-10 h-10 text-white" />
+                <div className={`w-20 h-20 rounded-full bg-gradient-to-br ${config.iconBg} flex items-center justify-center mx-auto mb-6 shadow-lg`}>
+                    <Icon className="w-10 h-10 text-white" />
                 </div>
 
                 {/* Title */}
-                <h2 className="text-2xl font-bold text-white mb-2">{title}</h2>
+                <h2 className="text-2xl font-bold text-white mb-2 tracking-tight">{title}</h2>
 
                 {/* Message */}
-                <p className="text-slate-400 mb-8">{message}</p>
+                <p className="text-slate-400 mb-8 leading-relaxed">{message}</p>
 
                 {/* Buttons */}
                 <div className="flex gap-4">
