@@ -1,31 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@prisma/client'
-import jwt from 'jsonwebtoken'
-
-const prisma = new PrismaClient()
-const JWT_SECRET = process.env.JWT_SECRET || 'lavamaster-secret-2026-production'
-
-function getUserFromToken(request: NextRequest) {
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader) {
-        throw new Error('Token não fornecido')
-    }
-
-    const token = authHeader.replace('Bearer ', '')
-    const decoded = jwt.verify(token, JWT_SECRET) as any
-    return decoded
-}
+import { prisma } from '@/lib/prisma'
+import { getAuthContext } from '@/lib/auth'
 
 // GET - Buscar dados da empresa do usuário logado
 export async function GET(request: NextRequest) {
     try {
         console.log('=== API /api/empresa GET ===')
-        const user = getUserFromToken(request)
-        console.log('User decoded:', user)
+        const auth = await getAuthContext()
 
-        // Buscar usuário com empresa (JWT usa 'sub' para o ID)
+        if (!auth || !auth.userId) {
+            console.error('[API Empresa] Usuário não identificado no contexto');
+            return NextResponse.json({ error: 'Não autorizado ou ID ausente' }, { status: 401 })
+        }
+
+        console.log('Auth context:', auth)
+
+        // Buscar usuário com empresa
         const usuario = await prisma.usuario.findUnique({
-            where: { id: user.sub },
+            where: { id: auth.userId },
             include: {
                 empresa: true
             }
@@ -55,18 +47,30 @@ export async function GET(request: NextRequest) {
 // PUT - Atualizar dados da empresa
 export async function PUT(request: NextRequest) {
     try {
-        const user = getUserFromToken(request)
+        const auth = await getAuthContext()
+
+        if (!auth) {
+            return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+        }
+
         const data = await request.json()
 
-        // Buscar usuário para pegar o empresaId (JWT usa 'sub' para o ID)
+        // Buscar usuário para pegar o empresaId
         const usuario = await prisma.usuario.findUnique({
-            where: { id: user.sub }
+            where: { id: auth.userId }
         })
 
         if (!usuario) {
             return NextResponse.json(
                 { error: 'Usuário não encontrado' },
                 { status: 404 }
+            )
+        }
+
+        if (!usuario.empresaId) {
+            return NextResponse.json(
+                { error: 'Este usuário não possui uma empresa vinculada' },
+                { status: 400 }
             )
         }
 

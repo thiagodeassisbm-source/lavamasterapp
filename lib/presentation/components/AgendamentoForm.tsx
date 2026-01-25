@@ -234,6 +234,7 @@ export default function AgendamentoForm({ onClose, onSave, initialData }: Agenda
                 status: data.status,
                 observacoes: data.observacoes,
                 veiculo: veiculo,
+                veiculoId: selectedVeiculo?.id,
                 servicos: servicosDetalhes,
                 valorTotal: valorTotal
             };
@@ -303,7 +304,7 @@ export default function AgendamentoForm({ onClose, onSave, initialData }: Agenda
                     </div>
 
                     {/* Form */}
-                    <form onSubmit={handleSubmit(onSubmit as any)} className="p-6 overflow-y-auto max-h-[calc(90vh-180px)]">
+                    <form id="agendamento-form" onSubmit={handleSubmit(onSubmit as any)} className="p-6 overflow-y-auto max-h-[calc(90vh-180px)]">
                         <div className="space-y-6">
                             {/* Cliente */}
                             <div>
@@ -565,6 +566,7 @@ export default function AgendamentoForm({ onClose, onSave, initialData }: Agenda
                             </button>
                             <button
                                 type="submit"
+                                form="agendamento-form"
                                 disabled={isSubmitting}
                                 className="px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-500/30 flex items-center gap-2"
                             >

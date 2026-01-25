@@ -1,7 +1,8 @@
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import jwt from 'jsonwebtoken';
 
 // Definição única da chave para evitar divergências
+// Prioriza a variável de ambiente do Vercel/Produção
 const JWT_SECRET = process.env.JWT_SECRET || 'segredo-super-seguro-lava-master-2026';
 
 export interface AuthContext {
@@ -12,36 +13,44 @@ export interface AuthContext {
 
 export async function getAuthContext(): Promise<AuthContext | null> {
     try {
-        const cookieStore = cookies(); // No Next 14, cookies() é síncrono
+        const cookieStore = cookies();
+        const headersList = headers();
 
-        // Tenta os dois padrões de nome de cookie para garantir compatibilidade total
-        const token = cookieStore.get('auth_token')?.value || cookieStore.get('auth-token')?.value;
+        let token = cookieStore.get('auth_token')?.value || cookieStore.get('auth-token')?.value;
 
         if (!token) {
-            console.log('[AUTH] Nenhum token encontrado nos cookies.');
+            const authHeader = headersList.get('authorization');
+            if (authHeader?.startsWith('Bearer ')) {
+                token = authHeader.substring(7);
+            }
+        }
+
+        if (!token) {
+            console.log('[AUTH] Nenhum token encontrado.');
             return null;
         }
 
+        // Tenta decodificar o token
         const decoded = jwt.verify(token, JWT_SECRET) as any;
 
-        if (!decoded) {
-            console.log('[AUTH] Falha ao decodificar token.');
-            return null;
-        }
+        // LOG DE DIAGNÓSTICO PARA O DESENVOLVEDOR (Remover após correção)
+        console.log('[AUTH DEBUG] Conteúdo do Token:', JSON.stringify(decoded));
 
-        // Se não for superadmin, precisa ter um empresaId vinculado
-        if (!decoded.empresaId && decoded.role !== 'superadmin') {
-            console.log('[AUTH] Token sem empresaId para usuário comum.');
+        // Prioridade de campos: sub (padrão JWT) ou id (padrão local)
+        const userId = decoded.id || decoded.sub;
+
+        if (!userId) {
+            console.error('[AUTH ERROR] Token decodificado mas userId está AUSENTE.');
             return null;
         }
 
         return {
-            userId: decoded.id || decoded.sub,
+            userId: userId,
             empresaId: decoded.empresaId ?? null,
             role: decoded.role || 'usuario'
         };
     } catch (error) {
-        console.error('[AUTH] Erro crítico na validação do contexto:', error);
+        console.error('[AUTH] Erro na validação:', error instanceof Error ? error.message : error);
         return null;
     }
 }
