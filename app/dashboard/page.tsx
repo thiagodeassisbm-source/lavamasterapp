@@ -2,7 +2,6 @@ import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { getAuthContext } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import MobileMenu from '@/lib/presentation/components/MobileMenu';
 import DashboardClient from './DashboardClient';
 import { Users } from 'lucide-react';
 
@@ -120,34 +119,26 @@ export default async function DashboardPage() {
 
     if (!data) {
         return (
-            <div className="flex min-h-screen bg-slate-950 text-white">
-                <MobileMenu />
-                <main className="flex-1 lg:ml-72 p-8 pt-20 lg:pt-8">
-                    <div className="text-center py-20 bg-white/5 rounded-2xl border border-white/10">
-                        <Users className="w-16 h-16 mx-auto mb-4 text-slate-500 opacity-20" />
-                        <h2 className="text-xl font-semibold mb-2">Bem-vindo ao Lavamaster</h2>
-                        <p className="text-slate-400 max-w-md mx-auto">
-                            Estamos preparando seu painel. Se esta mensagem persistir, verifique sua conexão ou tente fazer login novamente.
-                        </p>
-                    </div>
-                </main>
+            <div className="p-4 lg:p-8">
+                <div className="text-center py-20 bg-white/5 rounded-2xl border border-white/10">
+                    <Users className="w-16 h-16 mx-auto mb-4 text-slate-500 opacity-20" />
+                    <h2 className="text-xl font-semibold mb-2">Bem-vindo ao Lavamaster</h2>
+                    <p className="text-slate-400 max-w-md mx-auto">
+                        Estamos preparando seu painel. Se esta mensagem persistir, verifique sua conexão ou tente fazer login novamente.
+                    </p>
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="flex min-h-screen bg-slate-950">
-            <MobileMenu />
-            <main className="flex-1 lg:ml-72 uppercase-none">
-                <Suspense fallback={<div className="p-8 text-white">Carregando painel...</div>}>
-                    <DashboardClient
-                        initialStats={data.stats}
-                        initialRecentActivities={data.recentActivities}
-                        initialTodaysAppointments={data.todaysAppointments}
-                        initialWhatsappTemplate={data.whatsappTemplate}
-                    />
-                </Suspense>
-            </main>
-        </div>
+        <Suspense fallback={<div className="p-8 text-white">Carregando painel...</div>}>
+            <DashboardClient
+                initialStats={data.stats}
+                initialRecentActivities={data.recentActivities}
+                initialTodaysAppointments={data.todaysAppointments}
+                initialWhatsappTemplate={data.whatsappTemplate}
+            />
+        </Suspense>
     );
 }

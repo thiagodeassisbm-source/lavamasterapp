@@ -254,34 +254,20 @@ export default function Dashboard() {
     const [isProfileOpen, setIsProfileOpen] = useState(false);
 
     return (
-        <div className="min-h-screen p-4 lg:p-8 space-y-6 pt-4 lg:pt-8 pb-24 lg:pb-8">
-            {/* Mobile Header (Only visible on Mobile) */}
-            <div className="flex lg:hidden items-center justify-between mb-8 pb-4 border-b border-white/5">
-                <div className="flex items-center gap-3">
-                    <button
-                        onClick={() => window.dispatchEvent(new CustomEvent('toggle-mobile-menu'))}
-                        className="p-2 rounded-xl bg-white/5 border border-white/10 text-white"
-                    >
-                        <Menu className="w-6 h-6" />
-                    </button>
-                    <LogoLM size="sm" />
-                    <span className="text-white font-bold text-lg">Lava Master</span>
-                </div>
-            </div>
-
+        <div className="min-h-screen p-4 lg:p-8 space-y-8 pt-4 lg:pt-8 pb-24 lg:pb-8">
             {/* Main Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center animate-slide-down gap-4">
                 <div className="pl-1 lg:pl-0">
-                    <h1 className="text-3xl lg:text-4xl font-bold text-white mb-2">
+                    <h1 className="text-3xl lg:text-4xl font-bold text-white mb-2 uppercase tracking-tight">
                         Dashboard
                     </h1>
-                    <p className="text-slate-400">
+                    <p className="text-slate-500 text-sm">
                         Bem-vindo de volta! Aqui está um resumo do seu negócio.
                     </p>
                 </div>
 
                 {/* User Profile */}
-                <div className="relative">
+                <div className="relative hidden lg:block">
                     <button
                         onClick={() => setIsProfileOpen(!isProfileOpen)}
                         className="w-12 h-12 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/25 transition-all outline-none"
@@ -302,7 +288,7 @@ export default function Dashboard() {
                             </Link>
 
                             <button className="w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl transition-colors mt-1">
-                                <div className="w-4 h-4" />
+                                <LogOut className="w-4 h-4" />
                                 <span>Sair do Sistema</span>
                             </button>
                         </div>
@@ -310,9 +296,9 @@ export default function Dashboard() {
                 </div>
             </div>
 
-            {/* 1. Quick Access (Now First) */}
+            {/* 1. Acesso Rápido - Square Cards */}
             <div className="animate-slide-up" style={{ animationDelay: '0.1s' }}>
-                <h2 className="text-xl font-bold text-white mb-4 lg:text-2xl">Acesso Rápido</h2>
+                <h2 className="text-lg font-bold text-white mb-4 uppercase tracking-widest text-slate-400">Acesso Rápido</h2>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 lg:gap-4">
                     {quickAccessItems.map((item, index) => {
                         const Icon = item.icon;
@@ -321,18 +307,19 @@ export default function Dashboard() {
                                 key={index}
                                 href={item.href}
                                 className={`
-                                    ${item.gradient} rounded-2xl p-4 lg:p-6 
-                                    border border-white/10
-                                    hover:scale-105 hover:border-white/20
+                                    ${item.gradient} aspect-square rounded-3xl p-4 lg:p-6 
+                                    border border-white/10 shadow-xl
+                                    hover:scale-[1.02] hover:border-white/20
+                                    active:scale-95
                                     transition-all duration-300 
-                                    flex flex-col items-center justify-center gap-2 lg:gap-3
+                                    flex flex-col items-center justify-center gap-3
                                     group cursor-pointer
                                 `}
                             >
-                                <div className={`p-3 lg:p-4 rounded-xl bg-gradient-to-br ${item.color} shadow-lg group-hover:shadow-xl transition-shadow`}>
+                                <div className={`p-3 lg:p-4 rounded-2xl bg-gradient-to-br ${item.color} shadow-lg group-hover:shadow-xl transition-shadow`}>
                                     <Icon className="w-6 h-6 lg:w-8 lg:h-8 text-white" />
                                 </div>
-                                <span className="text-white font-semibold text-xs lg:text-base text-center">
+                                <span className="text-white font-bold text-xs lg:text-base text-center">
                                     {item.label}
                                 </span>
                             </Link>
@@ -341,23 +328,30 @@ export default function Dashboard() {
                 </div>
             </div>
 
-            {/* 2. Mini Stats Header (4 per line on mobile) */}
-            <div className="grid grid-cols-4 md:grid-cols-4 lg:grid-cols-4 gap-2 lg:gap-4 animate-slide-up" style={{ animationDelay: '0.2s' }}>
-                {stats.map((stat, index) => {
-                    const Icon = stat.icon;
-                    return (
-                        <div
-                            key={index}
-                            className="glass-effect rounded-xl lg:rounded-2xl p-2 lg:p-6 flex flex-col items-center lg:items-start transition-all hover:bg-white/10"
-                        >
-                            <div className={`p-1.5 lg:p-3 rounded-lg lg:rounded-xl bg-gradient-to-br ${stat.color} bg-opacity-20 mb-1 lg:mb-4 lg:flex lg:w-full lg:justify-between`}>
-                                <Icon className={`w-4 h-4 lg:w-6 lg:h-6 ${stat.color}`} />
+            {/* 2. Estatísticas - Square Cards (Matching Acesso Rápido) */}
+            <div className="animate-slide-up" style={{ animationDelay: '0.2s' }}>
+                <h2 className="text-lg font-bold text-white mb-4 uppercase tracking-widest text-slate-400">Resultados</h2>
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-3 lg:gap-4">
+                    {stats.map((stat, index) => {
+                        const Icon = stat.icon;
+                        return (
+                            <div
+                                key={index}
+                                className="glass-effect aspect-square rounded-3xl p-4 lg:p-6 flex flex-col items-center justify-center transition-all hover:bg-white/10 border border-white/5 active:scale-95"
+                            >
+                                <div className={`p-3 lg:p-4 rounded-2xl bg-gradient-to-br ${stat.color} bg-opacity-20 mb-3`}>
+                                    <Icon className={`w-6 h-6 lg:w-8 lg:h-8 ${stat.color}`} />
+                                </div>
+                                <h3 className="text-slate-400 text-[10px] lg:text-sm uppercase font-black mb-1 text-center leading-none px-1">
+                                    {stat.title}
+                                </h3>
+                                <p className="text-base lg:text-2xl font-black text-white truncate text-center">
+                                    {stat.value}
+                                </p>
                             </div>
-                            <h3 className="text-slate-500 text-[8px] lg:text-sm uppercase font-bold lg:mb-1 tracking-tighter lg:tracking-normal">{stat.title.split(' ')[0]}</h3>
-                            <p className="text-[10px] lg:text-2xl font-bold text-white truncate w-full text-center lg:text-left">{stat.value.replace('R$ ', 'R$')}</p>
-                        </div>
-                    );
-                })}
+                        );
+                    })}
+                </div>
             </div>
 
             {/* 3. Recent Activities & Todays Appointments */}

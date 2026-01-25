@@ -14,7 +14,9 @@ import {
     Clock,
     CheckCircle,
     ArrowRight,
-    MessageCircle
+    MessageCircle,
+    LogOut,
+    UserCircle
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -159,19 +161,20 @@ export default function DashboardClient({
     };
 
     return (
-        <div className="min-h-screen p-4 lg:p-8 space-y-6">
+        <div className="min-h-screen p-4 lg:p-8 space-y-8 pt-4 lg:pt-8 pb-24 lg:pb-8">
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center animate-slide-down gap-4">
-                <div>
-                    <h1 className="text-3xl lg:text-4xl font-bold text-white mb-2">
+                <div className="pl-1 lg:pl-0">
+                    <h1 className="text-3xl lg:text-4xl font-black text-white mb-1 uppercase tracking-tighter">
                         Dashboard
                     </h1>
-                    <p className="text-slate-400">
-                        Bem-vindo de volta! Aqui está um resumo do seu negócio.
+                    <p className="text-slate-500 text-sm font-medium">
+                        Resumo operacional do seu negócio.
                     </p>
                 </div>
 
-                <div className="relative">
+                {/* Desktop User Profile */}
+                <div className="relative hidden lg:block">
                     <button
                         onClick={() => setIsProfileOpen(!isProfileOpen)}
                         className="w-12 h-12 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/25 transition-all outline-none"
@@ -187,7 +190,7 @@ export default function DashboardClient({
                             </div>
 
                             <Link href="/perfil" className="flex items-center gap-3 px-4 py-3 text-slate-300 hover:text-white hover:bg-white/5 rounded-xl transition-colors">
-                                <Users className="w-4 h-4" />
+                                <UserCircle className="w-4 h-4" />
                                 <span>Meu Perfil</span>
                             </Link>
 
@@ -199,7 +202,7 @@ export default function DashboardClient({
                                 }}
                                 className="w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl transition-colors mt-1"
                             >
-                                <div className="w-4 h-4" />
+                                <LogOut className="w-4 h-4" />
                                 <span>Sair do Sistema</span>
                             </button>
                         </div>
@@ -207,60 +210,30 @@ export default function DashboardClient({
                 </div>
             </div>
 
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 animate-slide-up">
-                {stats.map((stat, index) => {
-                    const Icon = IconMap[stat.iconName] || DollarSign;
-                    const isPositive = stat.change > 0;
-
-                    return (
-                        <div
-                            key={index}
-                            className="glass-effect rounded-2xl p-6 hover:bg-white/10 transition-all duration-300 cursor-pointer group"
-                            style={{ animationDelay: `${index * 0.1}s` }}
-                        >
-                            <div className="flex items-start justify-between mb-4">
-                                <div className={`p-3 rounded-xl bg-gradient-to-br ${stat.color} bg-opacity-20`}>
-                                    <Icon className={`w-6 h-6 ${stat.color}`} />
-                                </div>
-                                {stat.change !== 0 && (
-                                    <div className={`flex items-center gap-1 text-sm ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
-                                        {isPositive ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-                                        <span className="font-semibold">{Math.abs(stat.change)}%</span>
-                                    </div>
-                                )}
-                            </div>
-                            <h3 className="text-slate-400 text-sm mb-1">{stat.title}</h3>
-                            <p className="text-2xl font-bold text-white">{stat.value}</p>
-                        </div>
-                    );
-                })}
-            </div>
-
-            {/* Quick Access */}
-            <div className="animate-slide-up" style={{ animationDelay: '0.2s' }}>
-                <h2 className="text-2xl font-bold text-white mb-4">Acesso Rápido</h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            {/* 1. Acesso Rápido - Square Cards */}
+            <div className="animate-slide-up" style={{ animationDelay: '0.1s' }}>
+                <h2 className="text-sm font-black text-slate-500 mb-4 uppercase tracking-[0.2em]">Acesso Rápido</h2>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 lg:gap-4">
                     {quickAccessItems.map((item, index) => {
                         const Icon = IconMap[item.icon] || Clock;
-
                         return (
                             <Link
                                 key={index}
                                 href={item.href}
                                 className={`
-                                  ${item.gradient} rounded-2xl p-6 
-                                  border border-white/10
-                                  hover:scale-105 hover:border-white/20
-                                  transition-all duration-300 
-                                  flex flex-col items-center justify-center gap-3
-                                  group cursor-pointer
+                                    ${item.gradient} aspect-square rounded-[2rem] p-4 lg:p-6 
+                                    border border-white/10 shadow-xl
+                                    hover:scale-[1.02] hover:border-white/20
+                                    active:scale-95
+                                    transition-all duration-300 
+                                    flex flex-col items-center justify-center gap-3
+                                    group cursor-pointer
                                 `}
                             >
-                                <div className={`p-4 rounded-xl bg-gradient-to-br ${item.color} shadow-lg group-hover:shadow-xl transition-shadow`}>
-                                    <Icon className="w-8 h-8 text-white" />
+                                <div className={`p-3 lg:p-4 rounded-2xl bg-gradient-to-br ${item.color} shadow-lg group-hover:shadow-xl transition-shadow`}>
+                                    <Icon className="w-6 h-6 lg:w-8 lg:h-8 text-white" />
                                 </div>
-                                <span className="text-white font-semibold text-center">
+                                <span className="text-white font-bold text-xs lg:text-base text-center tracking-tight">
                                     {item.label}
                                 </span>
                             </Link>
@@ -269,7 +242,33 @@ export default function DashboardClient({
                 </div>
             </div>
 
-            {/* Recent Activities & Todays Appointments */}
+            {/* 2. Estatísticas - Square Cards (Matching Style) */}
+            <div className="animate-slide-up" style={{ animationDelay: '0.2s' }}>
+                <h2 className="text-sm font-black text-slate-500 mb-4 uppercase tracking-[0.2em]">Resultados Gerais</h2>
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-3 lg:gap-4">
+                    {stats.map((stat, index) => {
+                        const Icon = IconMap[stat.iconName] || DollarSign;
+                        return (
+                            <div
+                                key={index}
+                                className="glass-effect aspect-square rounded-[2rem] p-4 lg:p-6 flex flex-col items-center justify-center transition-all hover:bg-white/10 border border-white/5 active:scale-95 shadow-xl"
+                            >
+                                <div className={`p-3 lg:p-4 rounded-2xl bg-gradient-to-br ${stat.color} bg-opacity-20 mb-3`}>
+                                    <Icon className={`w-6 h-6 lg:w-8 lg:h-8 ${stat.color}`} />
+                                </div>
+                                <h3 className="text-slate-400 text-[10px] lg:text-sm uppercase font-black mb-1 text-center leading-none px-1 tracking-tighter">
+                                    {stat.title}
+                                </h3>
+                                <p className="text-sm lg:text-2xl font-black text-white truncate text-center">
+                                    {stat.value}
+                                </p>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+
+            {/* 3. Recent Activities & Todays Appointments */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-slide-up" style={{ animationDelay: '0.3s' }}>
                 {/* Recent Activities */}
                 <div className="glass-effect rounded-2xl p-6">

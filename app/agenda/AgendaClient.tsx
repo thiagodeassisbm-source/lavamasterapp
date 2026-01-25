@@ -238,10 +238,8 @@ export default function AgendaClient({ initialAgendamentos, initialWhatsappTempl
     }).length;
 
     return (
-        <div className="flex min-h-screen">
-            <MobileMenu />
-
-            <main className="flex-1 lg:ml-72 p-4 lg:p-8">
+        <>
+            <main className="p-4 lg:p-8">
                 {/* Header */}
                 <div className="mb-8 animate-slide-down">
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -529,16 +527,18 @@ export default function AgendaClient({ initialAgendamentos, initialWhatsappTempl
             </main>
 
             {/* Form Modal */}
-            {showForm && (
-                <AgendamentoForm
-                    onClose={() => {
-                        setShowForm(false);
-                        setSelectedAgendamento(null);
-                    }}
-                    onSave={handleSaveAgendamento}
-                    initialData={selectedAgendamento || undefined}
-                />
-            )}
+            {
+                showForm && (
+                    <AgendamentoForm
+                        onClose={() => {
+                            setShowForm(false);
+                            setSelectedAgendamento(null);
+                        }}
+                        onSave={handleSaveAgendamento}
+                        initialData={selectedAgendamento || undefined}
+                    />
+                )
+            }
 
             {/* Confirm Dialog */}
             <ConfirmDialog
@@ -560,6 +560,6 @@ export default function AgendaClient({ initialAgendamentos, initialWhatsappTempl
                 type={toast.type}
                 onClose={hideToast}
             />
-        </div>
+        </>
     );
 }

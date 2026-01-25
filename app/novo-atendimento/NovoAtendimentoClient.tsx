@@ -222,10 +222,8 @@ export default function NovoAtendimentoClient({
     };
 
     return (
-        <div className="flex min-h-screen bg-slate-950">
-            <MobileMenu />
-
-            <main className="flex-1 lg:ml-72 p-4 lg:p-6 flex flex-col lg:flex-row gap-6 h-screen overflow-hidden">
+        <>
+            <main className="p-4 lg:p-6 flex flex-col lg:flex-row gap-6 h-screen overflow-hidden">
                 <div className="flex-1 flex flex-col gap-6 overflow-y-auto pr-2 pb-20 lg:pb-0">
                     <div>
                         <h1 className="text-3xl font-bold text-white mb-2">{editingId ? 'Editar Atendimento' : 'Iniciar Atendimento'}</h1>
@@ -401,6 +399,6 @@ export default function NovoAtendimentoClient({
                 type={toast.type}
                 onClose={() => setToast(prev => ({ ...prev, isOpen: false }))}
             />
-        </div>
+        </>
     );
 }

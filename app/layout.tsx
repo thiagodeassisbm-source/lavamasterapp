@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
-import PWAInstallPrompt from '@/lib/presentation/components/PWAInstallPrompt';
+import ClientLayout from '@/lib/presentation/components/ClientLayout';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -36,8 +36,6 @@ export const viewport: Viewport = {
   userScalable: false,
 };
 
-import { Toaster } from 'react-hot-toast';
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -50,9 +48,9 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
       <body className={inter.className}>
-        {children}
-        <PWAInstallPrompt />
-        <Toaster position="top-center" />
+        <ClientLayout>
+          {children}
+        </ClientLayout>
       </body>
     </html>
   );
