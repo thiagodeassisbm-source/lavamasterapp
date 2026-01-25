@@ -293,6 +293,20 @@ export default function OrcamentoForm({ onClose, onSave, initialData }: Orcament
                                 <div className="flex justify-between items-center text-slate-400 text-sm"><span>Desconto</span><input type="number" {...register('desconto', { valueAsNumber: true })} step="0.01" className="w-24 p-2 bg-white/5 border border-white/10 rounded-lg text-right text-white" /></div>
                                 <div className="border-t border-white/10 pt-4 flex justify-between text-white font-bold text-xl"><span>Total Final</span><span className="text-green-500 font-mono">R$ {totalFinal.toFixed(2)}</span></div>
 
+                                {Object.keys(errors).length > 0 && (
+                                    <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-2xl mt-4">
+                                        <p className="text-red-400 text-xs font-bold mb-2 uppercase tracking-widest">Campos Obrigatórios:</p>
+                                        <ul className="space-y-1">
+                                            {Object.entries(errors).map(([key, err]: any) => (
+                                                <li key={key} className="text-[10px] text-red-300 flex items-center gap-2">
+                                                    <div className="w-1 h-1 bg-red-500 rounded-full" />
+                                                    {err.message || key}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+
                                 <button type="submit" disabled={isSubmitting || (!dataLoaded && isEdit)} className="w-full mt-4 py-4 bg-gradient-to-r from-orange-500 to-red-600 text-white font-bold rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50">
                                     {isSubmitting ? <div className="w-6 h-6 border-4 border-white/30 border-t-white rounded-full animate-spin" /> : <Save className="w-6 h-6" />}
                                     {isEdit ? 'SALVAR ALTERAÇÕES' : 'CONFIRMAR'}
