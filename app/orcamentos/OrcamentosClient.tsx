@@ -86,6 +86,17 @@ export default function OrcamentosClient({ initialOrcamentos }: OrcamentosClient
         setShowForm(true);
     };
 
+    // Formatador de data estável para evitar Hydration Error
+    const formatDate = (date: any) => {
+        if (!date) return '';
+        const d = new Date(date);
+        if (isNaN(d.getTime())) return '';
+        const day = d.getDate().toString().padStart(2, '0');
+        const month = (d.getMonth() + 1).toString().padStart(2, '0');
+        const year = d.getFullYear();
+        return `${day}/${month}/${year}`;
+    };
+
     return (
         <div className="flex min-h-screen">
             <MobileMenu />
@@ -118,7 +129,6 @@ export default function OrcamentosClient({ initialOrcamentos }: OrcamentosClient
 
                 <div className="space-y-4">
                     {orcamentos.map(orcamento => {
-                        // FIX CRUCIAL: Se cliente for objeto, pega o nome. Se for string, usa ela.
                         const clienteNome = typeof orcamento.cliente === 'string' ? orcamento.cliente : orcamento.cliente?.nome || 'Cliente';
                         const valorExibicao = Number(orcamento.valorFinal || orcamento.valorTotal || orcamento.valor || 0);
 
@@ -129,7 +139,7 @@ export default function OrcamentosClient({ initialOrcamentos }: OrcamentosClient
                                         <h3 className="text-lg font-semibold text-white">{clienteNome}</h3>
                                         <span className={`px-3 py-0.5 rounded-full text-[10px] font-bold uppercase border ${getStatusColor(orcamento.status)}`}>{orcamento.status}</span>
                                     </div>
-                                    <p className="text-xs text-slate-400">Criado em: {new Date(orcamento.createdAt || orcamento.data).toLocaleDateString('pt-BR')} • Validade: {new Date(orcamento.validade).toLocaleDateString('pt-BR')}</p>
+                                    <p className="text-xs text-slate-400">Criado em: {formatDate(orcamento.createdAt || orcamento.data)} • Validade: {formatDate(orcamento.validade)}</p>
                                 </div>
                                 <div className="flex items-center gap-6">
                                     <p className="text-2xl font-bold text-green-400">R$ {valorExibicao.toFixed(2)}</p>
