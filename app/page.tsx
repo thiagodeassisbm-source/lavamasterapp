@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Mail, Lock, Eye, EyeOff, Wrench, ArrowRight, CheckCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
+import LogoLM from '@/lib/presentation/components/LogoLM';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -78,16 +79,14 @@ export default function LoginPage() {
         {/* Left Side - Hero Content */}
         <div className="hidden lg:flex flex-col justify-center p-12 relative">
           <div className="relative z-10 space-y-8">
-            <div className="inline-flex p-3 rounded-2xl bg-gradient-to-br from-blue-500/20 to-cyan-500/20 border border-blue-500/20 backdrop-blur-sm shadow-lg shadow-blue-500/10 animate-fade-in">
-              <Wrench className="w-10 h-10 text-blue-400" />
-            </div>
+            <LogoLM size="xl" className="animate-fade-in" />
 
             <div className="space-y-4">
               <h1 className="text-5xl font-bold leading-tight text-white mb-2">
                 <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400">
-                  LavaMaster
+                  Lava Master
                 </span> <br />
-                System
+                Estética Automotiva
               </h1>
               <p className="text-xl text-slate-400 max-w-md leading-relaxed">
                 Gestão completa para sua estética automotiva. Controle total, onde você estiver.

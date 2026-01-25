@@ -28,6 +28,7 @@ import {
     History as HistoryIcon,
     Building2
 } from 'lucide-react';
+import LogoLM from './LogoLM';
 
 interface MenuItem {
     icon: React.ElementType;
@@ -133,12 +134,10 @@ export default function MobileMenu() {
                     {/* Header */}
                     <div className="p-5 border-b border-white/10">
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
-                                <Wrench className="w-5 h-5 text-white" />
-                            </div>
+                            <LogoLM size="md" />
                             <div>
-                                <h2 className="text-base font-bold text-white leading-tight">Estética Auto</h2>
-                                <p className="text-[10px] text-slate-400 uppercase tracking-wider">Sistema de Gestão</p>
+                                <h2 className="text-base font-bold text-white leading-tight">Lava Master</h2>
+                                <p className="text-[10px] text-slate-400 uppercase tracking-wider">Estética Automotiva</p>
                             </div>
                         </div>
                     </div>

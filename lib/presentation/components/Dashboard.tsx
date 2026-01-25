@@ -110,16 +110,18 @@ export default function Dashboard() {
 
         const fetchData = async () => {
             try {
-                const [resAtendimentos, resClientes, resDespesas] = await Promise.all([
-                    fetch('/api/agendamentos'), // Traz agendamentos (agora usando Prisma e com fone)
+                const [resAtendimentos, resClientes, resDespesas, resOrcamentos] = await Promise.all([
+                    fetch('/api/agendamentos'),
                     fetch('/api/clientes'),
-                    fetch('/api/despesas')
+                    fetch('/api/despesas'),
+                    fetch('/api/orcamentos')
                 ]);
 
-                if (resAtendimentos.ok && resClientes.ok && resDespesas.ok) {
+                if (resAtendimentos.ok && resClientes.ok && resDespesas.ok && resOrcamentos.ok) {
                     const atendimentos = await resAtendimentos.json();
                     const clientes = await resClientes.json();
                     const despesas = await resDespesas.json();
+                    const orcamentos = await resOrcamentos.json();
 
                     // --- CALCULAR ESTATÍSTICAS ---
                     const now = new Date();
@@ -166,19 +168,32 @@ export default function Dashboard() {
                     ]);
 
 
-                    // --- ATIVIDADES RECENTES ---
-                    const sortedAtendimentos = [...atendimentos].sort((a: any, b: any) =>
-                        new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime()
-                    ).slice(0, 5);
-
-                    const mapActivity = sortedAtendimentos.map((a: any) => ({
+                    // --- ATIVIDADES RECENTES (Agendamentos + Orçamentos) ---
+                    const atividadesAgendamentos = atendimentos.map((a: any) => ({
                         id: a.id,
+                        date: new Date(a.updatedAt || a.createdAt),
                         type: a.status === 'concluido' ? 'success' : 'info',
-                        message: `${a.status === 'concluido' ? 'Serviço concluído' : 'Novo serviço iniciado'} - ${a.clienteNome}`,
+                        message: a.status === 'concluido' ? `Serviço concluído - ${a.clienteNome}` :
+                            a.status === 'em_andamento' ? `Atendimento iniciado - ${a.clienteNome}` :
+                                `Agendamento realizado - ${a.clienteNome}`,
                         time: new Date(a.updatedAt || a.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-                        icon: a.status === 'concluido' ? CheckCircle : Wrench
+                        icon: a.status === 'concluido' ? CheckCircle : (a.status === 'em_andamento' ? Wrench : Calendar)
                     }));
-                    setRecentActivities(mapActivity);
+
+                    const atividadesOrcamentos = orcamentos.map((o: any) => ({
+                        id: o.id,
+                        date: new Date(o.updatedAt || o.createdAt),
+                        type: 'warning',
+                        message: `Orcamento criado - ${o.cliente?.nome || 'Cliente'}`,
+                        time: new Date(o.updatedAt || o.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+                        icon: FileText
+                    }));
+
+                    const sortedActivities = [...atividadesAgendamentos, ...atividadesOrcamentos]
+                        .sort((a, b) => b.date.getTime() - a.date.getTime())
+                        .slice(0, 5);
+
+                    setRecentActivities(sortedActivities);
 
 
                     // --- AGENDAMENTOS DO DIA ---
