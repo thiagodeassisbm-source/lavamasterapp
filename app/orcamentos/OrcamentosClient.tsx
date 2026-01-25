@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 const OrcamentoForm = dynamic(() => import('@/lib/presentation/components/OrcamentoForm'), { ssr: false });
+const AgendamentoForm = dynamic(() => import('@/lib/presentation/components/AgendamentoForm'), { ssr: false });
 
 import MobileMenu from '@/lib/presentation/components/MobileMenu';
 // import OrcamentoForm from '@/lib/presentation/components/OrcamentoForm'; // Removido import estático
@@ -26,6 +27,11 @@ export default function OrcamentosClient({ initialOrcamentos }: OrcamentosClient
     const [toast, setToast] = useState<{ title: string; message: string; type: ToastType; isOpen: boolean }>({
         title: '', message: '', type: 'success', isOpen: false,
     });
+
+    // Estados para a nova rotina de agendamento automático
+    const [showSchedulingPrompt, setShowSchedulingPrompt] = useState(false);
+    const [showSchedulingForm, setShowSchedulingForm] = useState(false);
+    const [initialSchedulingData, setInitialSchedulingData] = useState<any>(null);
 
     const getStatusColor = (status: string) => {
         const colors = {
@@ -69,11 +75,52 @@ export default function OrcamentosClient({ initialOrcamentos }: OrcamentosClient
             if (response.ok) {
                 showToast('Sucesso!', 'Orçamento salvo com sucesso.', 'success');
                 setShowForm(false);
+
+                // ROTINA: Se aprovado, pergunta se quer agendar após fechar o modal
+                const isAprovado = formData.status?.toLowerCase() === 'aprovado';
+
+                if (isAprovado) {
+                    const schedulingPayload = {
+                        clienteId: formData.clienteId && formData.clienteId !== '0' ? formData.clienteId : undefined,
+                        novoClienteNome: formData.clienteId === '0' ? formData.clienteNome : undefined,
+                        veiculo: formData.veiculo,
+                        servicos: (formData.itens || []).map((it: any) => it.nome || it.descricao),
+                        observacoes: `Referente ao Orçamento #${selectedOrcamento?.id || 'Novo'}. ${formData.observacoes || ''}`,
+                        dataHora: new Date().toISOString().slice(0, 16) // Formato datetime-local
+                    };
+
+                    setTimeout(() => {
+                        setInitialSchedulingData(schedulingPayload);
+                        setShowSchedulingPrompt(true);
+                    }, 500);
+                }
+
                 setSelectedOrcamento(null);
                 await fetchOrcamentos();
             } else {
                 const err = await response.json();
                 throw new Error(err.error || 'Erro ao salvar');
+            }
+        } catch (error: any) {
+            showToast('Erro', error.message, 'error');
+        }
+    };
+
+    const handleSaveScheduling = async (schedulingData: any) => {
+        try {
+            const res = await fetch('/api/agendamentos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(schedulingData)
+            });
+
+            if (res.ok) {
+                showToast('Agendado!', 'Atendimento agendado com sucesso.', 'success');
+                setShowSchedulingForm(false);
+                router.refresh();
+            } else {
+                const err = await res.json();
+                throw new Error(err.error || 'Erro ao agendar');
             }
         } catch (error: any) {
             showToast('Erro', error.message, 'error');
@@ -151,6 +198,27 @@ export default function OrcamentosClient({ initialOrcamentos }: OrcamentosClient
                 </div>
 
                 {showForm && <OrcamentoForm onClose={() => setShowForm(false)} onSave={handleSave} initialData={selectedOrcamento} />}
+
+                {/* Popups da Rotina de Aprovação */}
+                <ConfirmDialog
+                    isOpen={showSchedulingPrompt}
+                    title="Orçamento Aprovado!"
+                    message="Deseja agendar o atendimento para este orçamento agora?"
+                    onConfirm={() => {
+                        setShowSchedulingPrompt(false);
+                        setShowSchedulingForm(true);
+                    }}
+                    onCancel={() => setShowSchedulingPrompt(false)}
+                    type="success"
+                />
+
+                {showSchedulingForm && (
+                    <AgendamentoForm
+                        onClose={() => setShowSchedulingForm(false)}
+                        onSave={handleSaveScheduling}
+                        initialData={initialSchedulingData}
+                    />
+                )}
 
                 <ConfirmDialog isOpen={showDeleteConfirm} title="Excluir Orçamento" message="Tem certeza?" onConfirm={async () => {
                     await fetch(`/api/orcamentos/${orcamentoToDelete}`, { method: 'DELETE' });
