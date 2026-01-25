@@ -1,12 +1,12 @@
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { getAuthContext } from '@/lib/auth';
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 import AtendimentosClient from './AtendimentosClient';
 
 async function getAtendimentos() {
     const auth = await getAuthContext();
-    if (!auth) return null;
+    if (!auth || !auth.empresaId) return null;
 
     try {
         const data = await prisma.agendamento.findMany({
@@ -20,19 +20,19 @@ async function getAtendimentos() {
                     }
                 }
             },
-            orderBy: { dataAgendamento: 'desc' }
+            orderBy: { dataHora: 'desc' }
         });
 
         // Formatar os dados para o formato que o componente espera
-        return data.map(item => ({
+        return data.map((item: any) => ({
             id: item.id,
-            clienteNome: item.cliente.nome,
+            clienteNome: item.cliente?.nome || 'Cliente',
             clienteId: item.clienteId,
             veiculo: item.veiculo ? `${item.veiculo.marca} ${item.veiculo.modelo} (${item.veiculo.placa})` : 'Sem veículo',
-            servicos: item.servicos.map(s => s.servico?.nome || 'Serviço'),
-            valorTotal: item.valorTotal,
+            servicos: item.servicos.map((s: any) => s.servico?.nome || 'Serviço'),
+            valorTotal: Number(item.valorTotal || 0),
             status: item.status as any,
-            dataHora: item.dataAgendamento.toISOString(),
+            dataHora: item.dataHora.toISOString(),
             formaPagamento: item.formaPagamento || 'Não informada'
         }));
     } catch (error) {
@@ -62,7 +62,7 @@ export default async function AtendimentosPage() {
                 </div>
             </div>
         }>
-            <AtendimentosClient initialAtendimentos={JSON.parse(JSON.stringify(initialAtendimentos))} />
+            <AtendimentosClient initialAtendimentos={initialAtendimentos} />
         </Suspense>
     );
 }
