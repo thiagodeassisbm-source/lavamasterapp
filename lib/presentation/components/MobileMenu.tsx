@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
@@ -91,6 +91,12 @@ export default function MobileMenu() {
 
     const toggleMenu = () => setIsOpen(!isOpen);
 
+    useEffect(() => {
+        const handleToggle = () => setIsOpen(prev => !prev);
+        window.addEventListener('toggle-mobile-menu', handleToggle);
+        return () => window.removeEventListener('toggle-mobile-menu', handleToggle);
+    }, []);
+
     const toggleSubMenu = (label: string) => {
         setExpandedMenus(prev =>
             prev.includes(label)
@@ -104,15 +110,6 @@ export default function MobileMenu() {
 
     return (
         <>
-            {/* Menu Button */}
-            <button
-                onClick={toggleMenu}
-                className="fixed top-2 left-2 z-[60] p-3 rounded-2xl bg-slate-900/50 backdrop-blur-md border border-white/10 hover:bg-white/10 transition-all duration-300 lg:hidden shadow-lg shadow-black/20"
-                aria-label="Toggle menu"
-            >
-                {isOpen ? <X className="w-5 h-5 text-white" /> : <Menu className="w-5 h-5 text-white" />}
-            </button>
-
             {/* Overlay */}
             {isOpen && (
                 <div
