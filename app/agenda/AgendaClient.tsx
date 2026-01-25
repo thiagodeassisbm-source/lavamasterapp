@@ -5,6 +5,8 @@ import MobileMenu from '@/lib/presentation/components/MobileMenu';
 import AgendamentoForm from '@/lib/presentation/components/AgendamentoForm';
 import ConfirmDialog from '@/lib/presentation/components/ConfirmDialog';
 import Toast, { ToastType } from '@/lib/presentation/components/Toast';
+import Link from 'next/link';
+import UserProfile from '@/lib/presentation/components/UserProfile';
 import {
     Plus,
     Calendar as CalendarIcon,
@@ -239,7 +241,7 @@ export default function AgendaClient({ initialAgendamentos, initialWhatsappTempl
 
     return (
         <>
-            <main className="p-4 lg:p-8">
+            <main className="w-full p-4 lg:p-8">
                 {/* Header */}
                 <div className="mb-8 animate-slide-down">
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -251,16 +253,21 @@ export default function AgendaClient({ initialAgendamentos, initialWhatsappTempl
                                 Gerencie seus agendamentos e horários
                             </p>
                         </div>
-                        <button
-                            onClick={() => {
-                                setSelectedAgendamento(null);
-                                setShowForm(true);
-                            }}
-                            className="px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-cyan-600 transition-all shadow-lg shadow-blue-500/30 flex items-center gap-2 justify-center"
-                        >
-                            <Plus className="w-5 h-5" />
-                            Novo Agendamento
-                        </button>
+                        <div className="flex items-center gap-4">
+                            <div className="hidden lg:block">
+                                <UserProfile size="md" />
+                            </div>
+                            <button
+                                onClick={() => {
+                                    setSelectedAgendamento(null);
+                                    setShowForm(true);
+                                }}
+                                className="px-6 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-cyan-600 transition-all shadow-lg shadow-blue-500/30 flex items-center gap-2 justify-center"
+                            >
+                                <Plus className="w-5 h-5" />
+                                Novo Agendamento
+                            </button>
+                        </div>
                     </div>
                 </div>
 

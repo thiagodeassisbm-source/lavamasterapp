@@ -66,7 +66,7 @@ export default function ServicoForm({ onClose, onSave, initialData }: ServicoFor
 
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
-            <div className="glass-effect rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-hidden border border-white/20 shadow-2xl animate-scale-in">
+            <div className="glass-effect rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-hidden border border-white/20 shadow-2xl animate-scale-in">
                 {/* Header */}
                 <div className="bg-gradient-to-r from-pink-500/20 to-pink-600/20 border-b border-white/10 p-6">
                     <div className="flex items-center justify-between">

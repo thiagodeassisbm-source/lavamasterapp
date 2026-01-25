@@ -195,7 +195,7 @@ export default function OrcamentoForm({ onClose, onSave, initialData }: Orcament
 
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="glass-effect rounded-3xl w-full max-w-5xl max-h-[90vh] overflow-hidden border border-white/20 flex flex-col shadow-2xl">
+            <div className="glass-effect rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-hidden border border-white/20 flex flex-col shadow-2xl">
                 <div className="bg-gradient-to-r from-orange-500/20 to-red-500/20 border-b border-white/10 p-6 flex justify-between items-center">
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl bg-orange-600 flex items-center justify-center shadow-lg"><FileText className="w-6 h-6 text-white" /></div>

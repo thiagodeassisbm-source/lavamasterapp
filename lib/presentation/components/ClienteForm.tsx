@@ -270,7 +270,7 @@ export default function ClienteForm({ onClose, onSave, initialData }: ClienteFor
             />
 
             <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
-                <div className="glass-effect rounded-3xl w-full max-w-6xl h-[95vh] border border-white/20 shadow-2xl animate-scale-in flex flex-col overflow-hidden">
+                <div className="glass-effect rounded-3xl w-full max-w-7xl h-[95vh] border border-white/20 shadow-2xl animate-scale-in flex flex-col overflow-hidden">
                     {/* Header */}
                     <div className="bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border-b border-white/10 p-5 flex-shrink-0">
                         <div className="flex items-center justify-between">

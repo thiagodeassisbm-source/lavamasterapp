@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import UserProfile from '@/lib/presentation/components/UserProfile';
 import {
     Calendar,
     DollarSign,
@@ -160,7 +161,7 @@ export default function DashboardClient({
     };
 
     return (
-        <div className="min-h-screen p-4 lg:p-8 space-y-8 pt-4 lg:pt-8 pb-24 lg:pb-8">
+        <div className="w-full min-h-screen p-4 lg:p-8 space-y-8 pt-4 lg:pt-8 pb-24 lg:pb-8">
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center animate-slide-down gap-4">
                 <div className="pl-1 lg:pl-0">
@@ -170,6 +171,10 @@ export default function DashboardClient({
                     <p className="text-slate-500 text-sm font-medium">
                         Resumo operacional do seu negócio.
                     </p>
+                </div>
+
+                <div className="hidden lg:block">
+                    <UserProfile size="lg" />
                 </div>
             </div>
 

@@ -21,9 +21,9 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     }
 
     return (
-        <div className="flex min-h-screen bg-slate-950">
+        <div className="flex min-h-screen w-full bg-slate-950 overflow-x-hidden">
             <MobileMenu />
-            <div className="flex-1 lg:ml-72 transition-all">
+            <div className="flex-1 w-full lg:ml-72 transition-all overflow-x-hidden">
                 <MobileHeader />
                 <main>
                     {children}

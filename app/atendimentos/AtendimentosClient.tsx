@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Toast, { ToastType } from '@/lib/presentation/components/Toast';
+import ConfirmDialog from '@/lib/presentation/components/ConfirmDialog';
+import UserProfile from '@/lib/presentation/components/UserProfile';
 import {
     Search,
     Car,
@@ -10,15 +12,18 @@ import {
     CheckCircle,
     MoreVertical,
     Calendar,
-    ArrowRight
+    ArrowRight,
+    Filter,
+    X,
+    Trash2
 } from 'lucide-react';
 
 interface Atendimento {
     id: string;
     clienteNome: string;
     clienteId: string;
-    veiculo?: string;
-    servicos: any[];
+    veiculo: string;
+    servicos: string[];
     valorTotal: number;
     status: 'agendado' | 'confirmado' | 'em_andamento' | 'concluido' | 'cancelado';
     dataHora: string;
@@ -32,15 +37,17 @@ interface AtendimentosClientProps {
 export default function AtendimentosClient({ initialAtendimentos }: AtendimentosClientProps) {
     const router = useRouter();
     const [atendimentos, setAtendimentos] = useState<Atendimento[]>(initialAtendimentos);
+    const [statusFilter, setStatusFilter] = useState<string>('todos');
     const [searchTerm, setSearchTerm] = useState('');
-    const [statusFilter, setStatusFilter] = useState<string>('em_andamento');
-
     const [toast, setToast] = useState<{ title: string; message: string; type: ToastType; isOpen: boolean }>({
         title: '',
         message: '',
         type: 'success',
         isOpen: false,
     });
+
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [atendimentoToDelete, setAtendimentoToDelete] = useState<string | null>(null);
 
     const showToast = (title: string, message: string, type: ToastType) => {
         setToast({ title, message, type, isOpen: true });
@@ -51,41 +58,40 @@ export default function AtendimentosClient({ initialAtendimentos }: Atendimentos
             const res = await fetch('/api/atendimentos');
             if (res.ok) {
                 const data = await res.json();
-                data.sort((a: Atendimento, b: Atendimento) => new Date(b.dataHora).getTime() - new Date(a.dataHora).getTime());
                 setAtendimentos(data);
             }
         } catch (error) {
-            console.error('Erro ao buscar atendimentos:', error);
+            console.error(error);
         }
     };
 
-    const finalizarAtendimento = async (id: string) => {
+    const handleStatusChange = async (id: string, newStatus: string) => {
         try {
-            const res = await fetch('/api/atendimentos', {
-                method: 'PUT',
+            const res = await fetch(`/api/atendimentos?id=${id}`, {
+                method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id, status: 'concluido' })
+                body: JSON.stringify({ status: newStatus })
             });
 
             if (res.ok) {
-                showToast('Sucesso!', 'Atendimento finalizado com sucesso.', 'success');
+                showToast('Sucesso!', 'Status atualizado.', 'success');
                 fetchAtendimentos();
             }
         } catch (error) {
-            showToast('Erro', 'Não foi possível finalizar o atendimento', 'error');
+            showToast('Erro', 'Não foi possível atualizar.', 'error');
         }
     };
 
-    const cancelarAtendimento = async (id: string) => {
-        if (!confirm('Tem certeza que deseja cancelar este atendimento?')) return;
+    const handleCancel = async (id: string) => {
         try {
-            const res = await fetch('/api/atendimentos', {
-                method: 'PUT',
+            const res = await fetch(`/api/atendimentos?id=${id}`, {
+                method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id, status: 'cancelado' })
+                body: JSON.stringify({ status: 'cancelado' })
             });
+
             if (res.ok) {
-                showToast('Cancelado', 'Atendimento cancelado.', 'warning');
+                showToast('Cancelado', 'Atendimento cancelado.', 'success');
                 fetchAtendimentos();
             }
         } catch (error) {
@@ -101,132 +107,120 @@ export default function AtendimentosClient({ initialAtendimentos }: Atendimentos
     });
 
     const getStatusColor = (status: string) => {
-        const colors = {
+        const colors: any = {
             agendado: 'text-blue-400 bg-blue-500/10 border-blue-500/20',
             confirmado: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
             em_andamento: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20',
             concluido: 'text-purple-400 bg-purple-500/10 border-purple-500/20',
             cancelado: 'text-red-400 bg-red-500/10 border-red-500/20',
         };
-        return colors[status as keyof typeof colors] || colors.agendado;
+        return colors[status] || 'text-slate-400 bg-slate-500/10 border-white/5';
     };
 
     return (
-        <main className="p-4 lg:p-8">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <main className="w-full p-4 lg:p-8">
+            <div className="flex justify-between items-start mb-8 gap-4">
                 <div>
                     <h1 className="text-3xl font-bold text-white mb-2">Atendimentos</h1>
                     <p className="text-slate-400">Gerencie os serviços em andamento e finalizados</p>
                 </div>
-
-                <div className="flex gap-2">
-                    <div className="flex bg-white/5 p-1 rounded-xl border border-white/10">
-                        {['em_andamento', 'concluido', 'todos'].map(f => (
-                            <button
-                                key={f}
-                                onClick={() => setStatusFilter(f)}
-                                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${statusFilter === f ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
-                            >
-                                {f === 'em_andamento' ? 'Em Andamento' : f === 'concluido' ? 'Finalizados' : 'Todos'}
-                            </button>
-                        ))}
+                <div className="flex items-center gap-4">
+                    <div className="hidden lg:block">
+                        <UserProfile size="md" />
                     </div>
                 </div>
             </div>
 
-            <div className="relative mb-8">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
-                <input
-                    type="text"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Buscar por cliente, veículo..."
-                    className="w-full pl-12 pr-4 py-4 bg-white/5 border border-white/10 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-                />
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                <div className="flex bg-white/5 p-1 rounded-xl border border-white/10">
+                    {['em_andamento', 'concluido', 'todos'].map(f => (
+                        <button
+                            key={f}
+                            onClick={() => setStatusFilter(f)}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${statusFilter === f ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+                        >
+                            {f === 'em_andamento' ? 'Em Andamento' : f === 'concluido' ? 'Finalizados' : 'Todos'}
+                        </button>
+                    ))}
+                </div>
+
+                <div className="relative flex-1 w-full md:w-auto">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <input
+                        type="text"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        placeholder="Buscar por cliente ou veículo..."
+                        className="w-full pl-9 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    />
+                </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {filteredAtendimentos.length === 0 ? (
-                    <div className="col-span-full py-20 text-center border-2 border-dashed border-white/5 rounded-3xl bg-white/5">
-                        <Car className="w-12 h-12 text-slate-600 mx-auto mb-4 opacity-20" />
-                        <h3 className="text-xl font-semibold text-white mb-2">Nenhum atendimento encontrado</h3>
-                    </div>
-                ) : (
-                    filteredAtendimentos.map((item) => (
-                        <div
-                            key={item.id}
-                            onClick={() => router.push(`/novo-atendimento?id=${item.id}`)}
-                            className="group relative bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10 hover:border-blue-500/30 transition-all duration-300 flex flex-col cursor-pointer"
-                        >
-                            <div className="flex justify-between items-start mb-4">
-                                <span className={`px-3 py-1 rounded-full text-[10px] font-bold border ${getStatusColor(item.status)}`}>
-                                    {item.status.replace('_', ' ').toUpperCase()}
-                                </span>
-                                <div className="flex items-center gap-2">
-                                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-500/10 text-blue-300 border border-blue-500/20">
-                                        <Calendar className="w-3 h-3" />
-                                        <span className="text-[10px] font-bold">
-                                            {new Date(item.dataHora).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).replace('.', '')}
-                                        </span>
-                                    </div>
+            <div className="grid grid-cols-1 gap-4">
+                {filteredAtendimentos.map(atendimento => (
+                    <div key={atendimento.id} className="glass-effect rounded-2xl p-5 border border-white/5 hover:border-white/10 transition-all group">
+                        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                            <div className="flex items-center gap-4">
+                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-white bg-gradient-to-br from-blue-500 to-indigo-600`}>
+                                    {atendimento.clienteNome.charAt(0)}
                                 </div>
-                            </div>
-
-                            <div className="mb-6">
-                                <h3 className="text-xl font-bold text-white mb-1 group-hover:text-blue-400 transition-colors uppercase truncate">
-                                    {item.clienteNome}
-                                </h3>
-                                <div className="flex items-center gap-2 text-slate-400 text-sm">
-                                    <Car className="w-4 h-4 text-blue-500/50" />
-                                    <span className="truncate">{item.veiculo || 'Sem veículo'}</span>
-                                </div>
-                            </div>
-
-                            <div className="space-y-1.5 mb-6 flex-1">
-                                {item.servicos.map((servico: any, idx) => (
-                                    <div key={idx} className="flex items-center gap-2 text-xs text-slate-300 bg-black/20 p-2 rounded-lg border border-white/5">
-                                        <CheckCircle className="w-3 h-3 text-green-500/50" />
-                                        {typeof servico === 'string' ? servico : (servico.nome || 'Serviço')}
-                                    </div>
-                                ))}
-                            </div>
-
-                            <div className="mt-auto pt-4 border-t border-white/10 flex items-center justify-between">
                                 <div>
-                                    <p className="text-[10px] text-slate-500 uppercase font-bold tracking-tighter">Total</p>
-                                    <p className="text-lg font-black text-green-400">R$ {item.valorTotal.toFixed(2)}</p>
+                                    <h3 className="text-lg font-bold text-white group-hover:text-blue-400 transition-colors">{atendimento.clienteNome}</h3>
+                                    <p className="text-sm text-slate-400 flex items-center gap-2">
+                                        <Car className="w-4 h-4" /> {atendimento.veiculo}
+                                    </p>
                                 </div>
+                            </div>
 
-                                <div className="flex gap-2">
-                                    {item.status === 'em_andamento' && (
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); finalizarAtendimento(item.id); }}
-                                            className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-xs font-bold rounded-xl transition-all flex items-center gap-2"
-                                        >
-                                            Finalizar <ArrowRight className="w-3 h-3" />
-                                        </button>
-                                    )}
-                                    {item.status !== 'cancelado' && item.status !== 'concluido' && (
-                                        <button
-                                            onClick={(e) => { e.stopPropagation(); cancelarAtendimento(item.id); }}
-                                            className="p-2 hover:bg-red-500/10 text-slate-600 hover:text-red-400 rounded-lg transition-colors"
-                                        >
-                                            <MoreVertical className="w-4 h-4" />
-                                        </button>
-                                    )}
+                            <div className="flex flex-wrap items-center gap-3">
+                                <span className={`px-3 py-1 rounded-full text-xs font-bold border ${getStatusColor(atendimento.status)} uppercase tracking-wider`}>
+                                    {atendimento.status.replace('_', ' ')}
+                                </span>
+                                <div className="text-right">
+                                    <p className="text-sm font-medium text-slate-400">Total</p>
+                                    <p className="text-lg font-bold text-white">R$ {atendimento.valorTotal.toFixed(2)}</p>
                                 </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                                {atendimento.status === 'em_andamento' && (
+                                    <button
+                                        onClick={() => handleStatusChange(atendimento.id, 'concluido')}
+                                        className="px-4 py-2 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500 hover:text-white rounded-lg text-sm font-bold transition-all flex items-center gap-2"
+                                    >
+                                        <CheckCircle className="w-4 h-4" /> Finalizar
+                                    </button>
+                                )}
+                                <button
+                                    onClick={() => router.push(`/atendimentos/${atendimento.id}`)}
+                                    className="p-2 bg-white/5 text-slate-400 hover:text-white rounded-lg transition-all"
+                                >
+                                    <ArrowRight className="w-5 h-5" />
+                                </button>
+                                <button className="p-2 text-slate-500 hover:text-white">
+                                    <MoreVertical className="w-5 h-5" />
+                                </button>
                             </div>
                         </div>
-                    ))
-                )}
+                    </div>
+                ))}
             </div>
+
+            <ConfirmDialog
+                isOpen={showDeleteConfirm}
+                title="Cancelar Atendimento"
+                message="Deseja realmente cancelar este atendimento?"
+                onConfirm={() => atendimentoToDelete && handleCancel(atendimentoToDelete)}
+                onCancel={() => setShowDeleteConfirm(false)}
+                type="danger"
+            />
 
             <Toast
                 isOpen={toast.isOpen}
                 title={toast.title}
                 message={toast.message}
                 type={toast.type}
-                onClose={() => setToast(prev => ({ ...prev, isOpen: false }))}
+                onClose={() => setToast({ ...toast, isOpen: false })}
             />
         </main>
     );

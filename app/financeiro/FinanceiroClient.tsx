@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import MobileMenu from '@/lib/presentation/components/MobileMenu';
 import { DollarSign, TrendingUp, TrendingDown, Calendar, Plus, Search, Filter, X, Save, Tag, CreditCard } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
+import UserProfile from '@/lib/presentation/components/UserProfile';
 
 interface FinanceiroClientProps {
     initialReceitas: any[];
@@ -162,16 +162,18 @@ export default function FinanceiroClient({ initialReceitas, initialDespesas }: F
     };
 
     return (
-        <div className="flex min-h-screen bg-slate-950">
-            <MobileMenu />
+        <main className="w-full p-4 lg:p-8">
             <Toaster position="top-right" />
 
-            <main className="flex-1 lg:ml-72 p-4 lg:p-8">
-                {/* Header */}
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-                    <div>
-                        <h1 className="text-3xl font-bold text-white mb-2">Financeiro</h1>
-                        <p className="text-slate-400">Controle de receitas e despesas</p>
+            {/* Header */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold text-white mb-2">Financeiro</h1>
+                    <p className="text-slate-400">Controle de receitas e despesas</p>
+                </div>
+                <div className="flex items-center gap-4">
+                    <div className="hidden lg:block">
+                        <UserProfile size="md" />
                     </div>
                     <button
                         onClick={() => setIsModalOpen(true)}
@@ -181,279 +183,300 @@ export default function FinanceiroClient({ initialReceitas, initialDespesas }: F
                         Nova Despesa
                     </button>
                 </div>
+            </div>
 
-                {/* Filters Section */}
-                <div className="bg-white/5 border border-white/10 rounded-2xl p-4 mb-8">
-                    <div className="flex flex-wrap items-end gap-4">
-                        <div className="flex-1 min-w-[200px]">
-                            <label className="text-sm text-slate-400 mb-1 block">Buscar</label>
-                            <div className="relative">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                                <input
-                                    type="text"
-                                    value={clientSearch}
-                                    onChange={(e) => setClientSearch(e.target.value)}
-                                    placeholder="Cliente, descrição..."
-                                    className="w-full pl-9 pr-4 py-2 bg-black/20 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                />
+            {/* Filters Section */}
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-4 mb-8">
+                <div className="flex flex-wrap items-end gap-4">
+                    <div className="flex-1 min-w-[200px]">
+                        <label className="text-sm text-slate-400 mb-1 block">Buscar</label>
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                            <input
+                                type="text"
+                                value={clientSearch}
+                                onChange={(e) => setClientSearch(e.target.value)}
+                                placeholder="Cliente, descrição..."
+                                className="w-full pl-9 pr-4 py-2 bg-black/20 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="w-full sm:w-auto">
+                        <label className="text-sm text-slate-400 mb-1 block">Data Inicial</label>
+                        <input
+                            type="date"
+                            value={startDate}
+                            onChange={(e) => setStartDate(e.target.value)}
+                            className="w-full px-3 py-2 bg-black/20 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-1 focus:ring-blue-500 [color-scheme:dark]"
+                        />
+                    </div>
+
+                    <div className="w-full sm:w-auto">
+                        <label className="text-sm text-slate-400 mb-1 block">Data Final</label>
+                        <input
+                            type="date"
+                            value={endDate}
+                            onChange={(e) => setEndDate(e.target.value)}
+                            className="w-full px-3 py-2 bg-black/20 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-1 focus:ring-blue-500 [color-scheme:dark]"
+                        />
+                    </div>
+
+                    {(startDate || endDate || clientSearch) && (
+                        <button
+                            onClick={clearFilters}
+                            className="px-4 py-2 bg-white/5 hover:bg-white/10 text-slate-300 rounded-xl border border-white/5 transition-colors flex items-center gap-2"
+                        >
+                            <X className="w-4 h-4" />
+                            Limpar
+                        </button>
+                    )}
+                </div>
+            </div>
+
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                <div className="glass-effect rounded-2xl p-6 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                        <TrendingUp className="w-24 h-24 transform rotate-12" />
+                    </div>
+                    <div className="relative z-10 flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-green-500/20 flex items-center justify-center">
+                            <TrendingUp className="w-6 h-6 text-green-400" />
+                        </div>
+                        <div>
+                            <p className="text-slate-400 text-sm">Receitas Filtradas</p>
+                            <p className="text-2xl font-bold text-green-400">R$ {totalReceitas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="glass-effect rounded-2xl p-6 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                        <TrendingDown className="w-24 h-24 transform rotate-12" />
+                    </div>
+                    <div className="relative z-10 flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-red-500/20 flex items-center justify-center">
+                            <TrendingDown className="w-6 h-6 text-red-400" />
+                        </div>
+                        <div>
+                            <p className="text-slate-400 text-sm">Despesas Filtradas</p>
+                            <p className="text-2xl font-bold text-red-400">R$ {totalDespesas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="glass-effect rounded-2xl p-6 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                        <DollarSign className="w-24 h-24 transform rotate-12" />
+                    </div>
+                    <div className="relative z-10 flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center">
+                            <DollarSign className="w-6 h-6 text-blue-400" />
+                        </div>
+                        <div>
+                            <p className="text-slate-400 text-sm">Saldo no Período</p>
+                            <p className={`text-2xl font-bold ${saldo >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                R$ {Math.abs(saldo).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                {saldo < 0 && ' (Neg)'}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-20 lg:pb-0">
+                {/* Receitas List */}
+                <div className="flex flex-col h-full">
+                    <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                        <TrendingUp className="w-5 h-5 text-green-400" />
+                        Receitas
+                    </h2>
+                    <div className="flex-1 space-y-3 bg-white/5 border border-white/10 rounded-2xl p-4 max-h-[500px] overflow-y-auto custom-scrollbar">
+                        {isLoading ? (
+                            <div className="text-center py-10 text-slate-500">Carregando...</div>
+                        ) : filteredReceitas.length === 0 ? (
+                            <div className="text-center py-10 text-slate-500 border border-dashed border-white/10 rounded-xl">
+                                Nenhuma receita encontrada
                             </div>
-                        </div>
-
-                        <div className="w-full sm:w-auto">
-                            <label className="text-sm text-slate-400 mb-1 block">Data Inicial</label>
-                            <input
-                                type="date"
-                                value={startDate}
-                                onChange={(e) => setStartDate(e.target.value)}
-                                className="w-full px-3 py-2 bg-black/20 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-1 focus:ring-blue-500 [color-scheme:dark]"
-                            />
-                        </div>
-
-                        <div className="w-full sm:w-auto">
-                            <label className="text-sm text-slate-400 mb-1 block">Data Final</label>
-                            <input
-                                type="date"
-                                value={endDate}
-                                onChange={(e) => setEndDate(e.target.value)}
-                                className="w-full px-3 py-2 bg-black/20 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-1 focus:ring-blue-500 [color-scheme:dark]"
-                            />
-                        </div>
-
-                        {(startDate || endDate || clientSearch) && (
-                            <button
-                                onClick={clearFilters}
-                                className="px-4 py-2 bg-white/5 hover:bg-white/10 text-slate-300 rounded-xl border border-white/5 transition-colors flex items-center gap-2"
-                            >
-                                <X className="w-4 h-4" />
-                                Limpar
-                            </button>
+                        ) : (
+                            filteredReceitas.map(receita => (
+                                <div key={receita.id} className="glass-effect rounded-xl p-4 hover:bg-white/10 transition-colors">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <p className="font-semibold text-white">{receita.descricao}</p>
+                                            <p className="text-sm text-slate-400 flex items-center gap-1 mt-1">
+                                                <Calendar className="w-3 h-3" />
+                                                {new Date(receita.data).toLocaleDateString('pt-BR')}
+                                            </p>
+                                        </div>
+                                        <p className="text-lg font-bold text-green-400">
+                                            +R$ {receita.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                        </p>
+                                    </div>
+                                </div>
+                            ))
                         )}
                     </div>
                 </div>
 
-                {/* Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                    <div className="glass-effect rounded-2xl p-6 relative overflow-hidden group">
-                        <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                            <TrendingUp className="w-24 h-24 transform rotate-12" />
-                        </div>
-                        <div className="relative z-10 flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-xl bg-green-500/20 flex items-center justify-center">
-                                <TrendingUp className="w-6 h-6 text-green-400" />
+                {/* Despesas List */}
+                <div className="flex flex-col h-full">
+                    <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                        <TrendingDown className="w-5 h-5 text-red-400" />
+                        Despesas
+                    </h2>
+                    <div className="flex-1 space-y-3 bg-white/5 border border-white/10 rounded-2xl p-4 max-h-[500px] overflow-y-auto custom-scrollbar">
+                        {isLoading ? (
+                            <div className="text-center py-10 text-slate-500">Carregando...</div>
+                        ) : filteredDespesas.length === 0 ? (
+                            <div className="text-center py-10 text-slate-500 border border-dashed border-white/10 rounded-xl">
+                                Nenhuma despesa encontrada
                             </div>
-                            <div>
-                                <p className="text-slate-400 text-sm">Receitas Filtradas</p>
-                                <p className="text-2xl font-bold text-green-400">R$ {totalReceitas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="glass-effect rounded-2xl p-6 relative overflow-hidden group">
-                        <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                            <TrendingDown className="w-24 h-24 transform rotate-12" />
-                        </div>
-                        <div className="relative z-10 flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-xl bg-red-500/20 flex items-center justify-center">
-                                <TrendingDown className="w-6 h-6 text-red-400" />
-                            </div>
-                            <div>
-                                <p className="text-slate-400 text-sm">Despesas Filtradas</p>
-                                <p className="text-2xl font-bold text-red-400">R$ {totalDespesas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="glass-effect rounded-2xl p-6 relative overflow-hidden group">
-                        <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                            <DollarSign className="w-24 h-24 transform rotate-12" />
-                        </div>
-                        <div className="relative z-10 flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center">
-                                <DollarSign className="w-6 h-6 text-blue-400" />
-                            </div>
-                            <div>
-                                <p className="text-slate-400 text-sm">Saldo no Período</p>
-                                <p className={`text-2xl font-bold ${saldo >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                                    R$ {Math.abs(saldo).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                                    {saldo < 0 && ' (Neg)'}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Receitas List */}
-                    <div className="flex flex-col h-full">
-                        <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                            <TrendingUp className="w-5 h-5 text-green-400" />
-                            Receitas
-                        </h2>
-                        <div className="flex-1 space-y-3 bg-white/5 border border-white/10 rounded-2xl p-4 max-h-[500px] overflow-y-auto custom-scrollbar">
-                            {isLoading ? (
-                                <div className="text-center py-10 text-slate-500">Carregando...</div>
-                            ) : filteredReceitas.length === 0 ? (
-                                <div className="text-center py-10 text-slate-500 border border-dashed border-white/10 rounded-xl">
-                                    Nenhuma receita encontrada
-                                </div>
-                            ) : (
-                                filteredReceitas.map(receita => (
-                                    <div key={receita.id} className="glass-effect rounded-xl p-4 hover:bg-white/10 transition-colors">
-                                        <div className="flex justify-between items-start">
-                                            <div>
-                                                <p className="font-semibold text-white">{receita.descricao}</p>
-                                                <p className="text-sm text-slate-400 flex items-center gap-1 mt-1">
-                                                    <Calendar className="w-3 h-3" />
-                                                    {new Date(receita.data).toLocaleDateString('pt-BR')}
-                                                </p>
+                        ) : (
+                            filteredDespesas.map(despesa => (
+                                <div key={despesa.id} className="glass-effect rounded-xl p-4 hover:bg-white/10 transition-colors">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <div className="flex items-center gap-2">
+                                                <p className="font-semibold text-white">{despesa.descricao}</p>
+                                                <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-white/10 text-slate-400">
+                                                    {despesa.categoria}
+                                                </span>
                                             </div>
-                                            <p className="text-lg font-bold text-green-400">
-                                                +R$ {receita.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                            <p className="text-sm text-slate-400 flex items-center gap-1 mt-1">
+                                                <Calendar className="w-3 h-3" />
+                                                {new Date(despesa.data).toLocaleDateString('pt-BR')}
+                                                <span className="mx-1">•</span>
+                                                <span className="capitalize">{despesa.formaPagamento?.replace('_', ' ')}</span>
                                             </p>
                                         </div>
+                                        <p className="text-lg font-bold text-red-400">
+                                            -R$ {despesa.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                        </p>
                                     </div>
-                                ))
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Despesas List */}
-                    <div className="flex flex-col h-full">
-                        <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                            <TrendingDown className="w-5 h-5 text-red-400" />
-                            Despesas
-                        </h2>
-                        <div className="flex-1 space-y-3 bg-white/5 border border-white/10 rounded-2xl p-4 max-h-[500px] overflow-y-auto custom-scrollbar">
-                            {isLoading ? (
-                                <div className="text-center py-10 text-slate-500">Carregando...</div>
-                            ) : filteredDespesas.length === 0 ? (
-                                <div className="text-center py-10 text-slate-500 border border-dashed border-white/10 rounded-xl">
-                                    Nenhuma despesa encontrada
                                 </div>
-                            ) : (
-                                filteredDespesas.map(despesa => (
-                                    <div key={despesa.id} className="glass-effect rounded-xl p-4 hover:bg-white/10 transition-colors">
-                                        <div className="flex justify-between items-start">
-                                            <div>
-                                                <div className="flex items-center gap-2">
-                                                    <p className="font-semibold text-white">{despesa.descricao}</p>
-                                                    <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-white/10 text-slate-400">
-                                                        {despesa.categoria}
-                                                    </span>
-                                                </div>
-                                                <p className="text-sm text-slate-400 flex items-center gap-1 mt-1">
-                                                    <Calendar className="w-3 h-3" />
-                                                    {new Date(despesa.data).toLocaleDateString('pt-BR')}
-                                                    <span className="mx-1">•</span>
-                                                    <span className="capitalize">{despesa.formaPagamento?.replace('_', ' ')}</span>
-                                                </p>
-                                            </div>
-                                            <p className="text-lg font-bold text-red-400">
-                                                -R$ {despesa.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                                            </p>
-                                        </div>
-                                    </div>
-                                ))
-                            )}
-                        </div>
+                            ))
+                        )}
                     </div>
                 </div>
-            </main>
+            </div>
 
             {/* Modal Nova Despesa */}
             {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-                    <div className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-md p-6 shadow-2xl relative animate-slide-up">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+                    <div className="glass-effect rounded-3xl w-full max-w-lg p-8 border border-white/20 shadow-2xl relative animate-scale-in">
                         <button
                             onClick={() => setIsModalOpen(false)}
-                            className="absolute top-4 right-4 text-slate-400 hover:text-white"
+                            className="absolute top-6 right-6 p-2 rounded-xl hover:bg-white/10 text-slate-400 hover:text-white transition-all"
                         >
-                            <X className="w-6 h-6" />
+                            <X className="w-5 h-5" />
                         </button>
 
-                        <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
-                            <Plus className="w-6 h-6 text-red-500" />
-                            Nova Despesa
-                        </h2>
-
-                        <div className="space-y-4">
+                        <div className="flex items-center gap-4 mb-8">
+                            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center shadow-lg shadow-red-500/20">
+                                <Plus className="w-6 h-6 text-white" />
+                            </div>
                             <div>
-                                <label className="block text-sm font-medium text-slate-400 mb-1">Descrição</label>
+                                <h2 className="text-2xl font-bold text-white">Nova Despesa</h2>
+                                <p className="text-slate-400 text-sm">Registre uma saída financeira</p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-6">
+                            <div>
+                                <label className="block text-sm font-medium text-slate-300 mb-2">Descrição</label>
                                 <input
                                     type="text"
                                     value={novaDespesa.descricao}
                                     onChange={(e) => setNovaDespesa({ ...novaDespesa, descricao: e.target.value })}
                                     placeholder="Ex: Aluguel do mês"
-                                    className="w-full px-4 py-3 bg-black/20 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-red-500"
+                                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-red-500 transition-all placeholder-slate-500"
                                 />
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-400 mb-1">Valor (R$)</label>
-                                    <input
-                                        type="number"
-                                        step="0.01"
-                                        value={novaDespesa.valor}
-                                        onChange={(e) => setNovaDespesa({ ...novaDespesa, valor: e.target.value })}
-                                        placeholder="0,00"
-                                        className="w-full px-4 py-3 bg-black/20 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-red-500"
-                                    />
+                                    <label className="block text-sm font-medium text-slate-300 mb-2">Valor (R$)</label>
+                                    <div className="relative">
+                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-medium">R$</span>
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            value={novaDespesa.valor}
+                                            onChange={(e) => setNovaDespesa({ ...novaDespesa, valor: e.target.value })}
+                                            placeholder="0,00"
+                                            className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-red-500 transition-all placeholder-slate-500"
+                                        />
+                                    </div>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-400 mb-1">Data</label>
-                                    <input
-                                        type="date"
-                                        value={novaDespesa.data}
-                                        onChange={(e) => setNovaDespesa({ ...novaDespesa, data: e.target.value })}
-                                        className="w-full px-4 py-3 bg-black/20 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-red-500 [color-scheme:dark]"
-                                    />
+                                    <label className="block text-sm font-medium text-slate-300 mb-2">Data</label>
+                                    <div className="relative">
+                                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                        <input
+                                            type="date"
+                                            value={novaDespesa.data}
+                                            onChange={(e) => setNovaDespesa({ ...novaDespesa, data: e.target.value })}
+                                            className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-red-500 transition-all [color-scheme:dark]"
+                                        />
+                                    </div>
                                 </div>
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-slate-400 mb-1">Categoria</label>
+                                <label className="block text-sm font-medium text-slate-300 mb-2">Categoria</label>
                                 <div className="relative">
-                                    <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                                    <Tag className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                                     <select
                                         value={novaDespesa.categoria}
                                         onChange={(e) => setNovaDespesa({ ...novaDespesa, categoria: e.target.value })}
-                                        className="w-full pl-10 pr-4 py-3 bg-black/20 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-red-500 appearance-none"
+                                        className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-red-500 appearance-none cursor-pointer transition-all"
                                     >
                                         {categorias.map(cat => (
                                             <option key={cat} value={cat} className="bg-slate-900">{cat}</option>
                                         ))}
                                     </select>
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                                        <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                    </div>
                                 </div>
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-slate-400 mb-1">Forma de Pagamento</label>
+                                <label className="block text-sm font-medium text-slate-300 mb-2">Forma de Pagamento</label>
                                 <div className="relative">
-                                    <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                                    <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                                     <select
                                         value={novaDespesa.formaPagamento}
                                         onChange={(e) => setNovaDespesa({ ...novaDespesa, formaPagamento: e.target.value })}
-                                        className="w-full pl-10 pr-4 py-3 bg-black/20 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-red-500 appearance-none"
+                                        className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-red-500 appearance-none cursor-pointer transition-all"
                                     >
                                         {formasPagamento.map(fp => (
                                             <option key={fp.id} value={fp.id} className="bg-slate-900">{fp.label}</option>
                                         ))}
                                     </select>
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                                        <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                    </div>
                                 </div>
                             </div>
 
                             <button
                                 onClick={handleSaveDespesa}
-                                className="w-full py-4 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-lg transition-all transform hover:scale-[1.02] active:scale-[0.98] mt-4 flex justify-center items-center gap-2"
+                                className="w-full py-4 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold rounded-xl shadow-lg shadow-red-500/30 transition-all transform hover:scale-[1.02] active:scale-[0.98] mt-4 flex justify-center items-center gap-2"
                             >
                                 <Save className="w-5 h-5" />
-                                Salvar Despesa
+                                Confirmar Despesa
                             </button>
                         </div>
                     </div>
                 </div>
             )}
-        </div>
+        </main>
     );
 }

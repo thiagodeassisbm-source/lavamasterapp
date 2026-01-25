@@ -6,8 +6,6 @@ import dynamic from 'next/dynamic';
 const OrcamentoForm = dynamic(() => import('@/lib/presentation/components/OrcamentoForm'), { ssr: false });
 const AgendamentoForm = dynamic(() => import('@/lib/presentation/components/AgendamentoForm'), { ssr: false });
 
-import MobileMenu from '@/lib/presentation/components/MobileMenu';
-// import OrcamentoForm from '@/lib/presentation/components/OrcamentoForm'; // Removido import estático
 import ConfirmDialog from '@/lib/presentation/components/ConfirmDialog';
 import Toast, { ToastType } from '@/lib/presentation/components/Toast';
 import { FileText, Plus, Clock, CheckCircle, XCircle, Trash2, UserPlus, DollarSign } from 'lucide-react';
@@ -128,12 +126,10 @@ export default function OrcamentosClient({ initialOrcamentos }: OrcamentosClient
     };
 
     const handleEdit = (orcamento: any) => {
-        // Passa o orçamento completo para o formulário tratar
         setSelectedOrcamento(orcamento);
         setShowForm(true);
     };
 
-    // Formatador de data estável para evitar Hydration Error
     const formatDate = (date: any) => {
         if (!date) return '';
         const d = new Date(date);
@@ -145,89 +141,97 @@ export default function OrcamentosClient({ initialOrcamentos }: OrcamentosClient
     };
 
     return (
-        <div className="flex min-h-screen">
-            <MobileMenu />
-            <main className="flex-1 lg:ml-72 p-4 lg:p-8">
-                <div className="flex justify-between items-center mb-8">
-                    <div>
-                        <h1 className="text-3xl font-bold text-white mb-2">Orçamentos</h1>
-                        <p className="text-slate-400">Propostas comerciais</p>
-                    </div>
-                    <button onClick={() => { setSelectedOrcamento(null); setShowForm(true); }} className="px-6 py-3 bg-orange-600 text-white font-bold rounded-xl shadow-lg flex items-center gap-2">
-                        <Plus className="w-5 h-5" /> Novo Orçamento
-                    </button>
+        <main className="w-full p-4 lg:p-8">
+            <div className="flex justify-between items-center mb-8">
+                <div>
+                    <h1 className="text-3xl font-bold text-white mb-2">Orçamentos</h1>
+                    <p className="text-slate-400">Gerencie suas propostas comerciais</p>
                 </div>
+                <button
+                    onClick={() => { setSelectedOrcamento(null); setShowForm(true); }}
+                    className="px-6 py-3 bg-gradient-to-r from-orange-500 to-red-600 text-white font-bold rounded-xl shadow-lg flex items-center gap-2 hover:from-orange-600 hover:to-red-700 transition-all active:scale-95"
+                >
+                    <Plus className="w-5 h-5" /> Novo Orçamento
+                </button>
+            </div>
 
-                {/* Cards Resumo */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                    <div className="glass-effect p-6 rounded-2xl flex items-center gap-4">
-                        <div className="p-3 bg-blue-500/20 rounded-xl"><FileText className="text-blue-400" /></div>
-                        <div><p className="text-slate-400 text-sm">Total de Orçamentos</p><p className="text-2xl font-bold text-white">{orcamentos.length}</p></div>
-                    </div>
-                    <div className="glass-effect p-6 rounded-2xl flex items-center gap-4">
-                        <div className="p-3 bg-yellow-500/20 rounded-xl"><Clock className="text-yellow-400" /></div>
-                        <div><p className="text-slate-400 text-sm">Aguardando Resposta</p><p className="text-2xl font-bold text-white">{orcamentos.filter(o => o.status === 'pendente').length}</p></div>
-                    </div>
-                    <div className="glass-effect p-6 rounded-2xl flex items-center gap-4">
-                        <div className="p-3 bg-green-500/20 rounded-xl"><DollarSign className="text-green-400" /></div>
-                        <div><p className="text-slate-400 text-sm">Total Aprovado (R$)</p><p className="text-2xl font-bold text-green-400">{orcamentos.filter(o => o.status === 'aprovado').reduce((acc, o) => acc + (Number(o.valorFinal || o.valorTotal || 0)), 0).toFixed(2)}</p></div>
-                    </div>
+            {/* Cards Resumo - Standard width */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div className="glass-effect p-6 rounded-2xl flex items-center gap-4 border border-white/5">
+                    <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center"><FileText className="text-blue-400 w-6 h-6" /></div>
+                    <div><p className="text-slate-400 text-sm">Total</p><p className="text-2xl font-bold text-white">{orcamentos.length}</p></div>
                 </div>
+                <div className="glass-effect p-6 rounded-2xl flex items-center gap-4 border border-white/5">
+                    <div className="w-12 h-12 bg-yellow-500/20 rounded-xl flex items-center justify-center"><Clock className="text-yellow-400 w-6 h-6" /></div>
+                    <div><p className="text-slate-400 text-sm">Pendentes</p><p className="text-2xl font-bold text-white">{orcamentos.filter(o => o.status === 'pendente').length}</p></div>
+                </div>
+                <div className="glass-effect p-6 rounded-2xl flex items-center gap-4 border border-white/5">
+                    <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center"><DollarSign className="text-green-400 w-6 h-6" /></div>
+                    <div><p className="text-slate-400 text-sm">Aprovados</p><p className="text-2xl font-bold text-green-400">R$ {orcamentos.filter(o => o.status === 'aprovado').reduce((acc, o) => acc + (Number(o.valorFinal || o.valorTotal || 0)), 0).toFixed(2)}</p></div>
+                </div>
+            </div>
 
-                <div className="space-y-4">
-                    {orcamentos.map(orcamento => {
+            <div className="space-y-4">
+                {orcamentos.length === 0 ? (
+                    <div className="glass-effect rounded-2xl p-12 text-center border-2 border-dashed border-white/5">
+                        <FileText className="w-16 h-16 text-slate-600 mx-auto mb-4" />
+                        <h3 className="text-xl font-semibold text-white mb-2">Nenhum orçamento encontrado</h3>
+                        <p className="text-slate-400">Crie seu primeiro orçamento clicando no botão acima.</p>
+                    </div>
+                ) : (
+                    orcamentos.map(orcamento => {
                         const clienteNome = typeof orcamento.cliente === 'string' ? orcamento.cliente : orcamento.cliente?.nome || 'Cliente';
                         const valorExibicao = Number(orcamento.valorFinal || orcamento.valorTotal || orcamento.valor || 0);
 
                         return (
-                            <div key={orcamento.id} onClick={() => handleEdit(orcamento)} className="glass-effect rounded-2xl p-6 hover:bg-white/10 transition-all cursor-pointer group flex flex-col md:flex-row justify-between items-center gap-4">
+                            <div key={orcamento.id} onClick={() => handleEdit(orcamento)} className="glass-effect rounded-2xl p-6 hover:bg-white/10 transition-all cursor-pointer group flex flex-col md:flex-row justify-between items-center gap-4 border border-white/5">
                                 <div className="flex-1">
                                     <div className="flex items-center gap-3 mb-1">
-                                        <h3 className="text-lg font-semibold text-white">{clienteNome}</h3>
+                                        <h3 className="text-lg font-semibold text-white group-hover:text-orange-400 transition-colors">{clienteNome}</h3>
                                         <span className={`px-3 py-0.5 rounded-full text-[10px] font-bold uppercase border ${getStatusColor(orcamento.status)}`}>{orcamento.status}</span>
                                     </div>
-                                    <p className="text-xs text-slate-400">Criado em: {formatDate(orcamento.createdAt || orcamento.data)} • Validade: {formatDate(orcamento.validade)}</p>
+                                    <p className="text-xs text-slate-400">Criado: {formatDate(orcamento.createdAt || orcamento.data)} • Validade: {formatDate(orcamento.validade)}</p>
                                 </div>
                                 <div className="flex items-center gap-6">
                                     <p className="text-2xl font-bold text-green-400">R$ {valorExibicao.toFixed(2)}</p>
-                                    <button onClick={(e) => { e.stopPropagation(); setOrcamentoToDelete(orcamento.id); setShowDeleteConfirm(true); }} className="p-2 text-red-500 hover:bg-red-500/10 rounded-xl transition-colors"><Trash2 className="w-5 h-5" /></button>
+                                    <button onClick={(e) => { e.stopPropagation(); setOrcamentoToDelete(orcamento.id); setShowDeleteConfirm(true); }} className="p-2.5 text-red-500 hover:bg-red-500/20 rounded-xl transition-all opacity-0 group-hover:opacity-100"><Trash2 className="w-5 h-5" /></button>
                                 </div>
                             </div>
                         );
-                    })}
-                </div>
-
-                {showForm && <OrcamentoForm onClose={() => setShowForm(false)} onSave={handleSave} initialData={selectedOrcamento} />}
-
-                {/* Popups da Rotina de Aprovação */}
-                <ConfirmDialog
-                    isOpen={showSchedulingPrompt}
-                    title="Orçamento Aprovado!"
-                    message="Deseja agendar o atendimento para este orçamento agora?"
-                    onConfirm={() => {
-                        setShowSchedulingPrompt(false);
-                        setShowSchedulingForm(true);
-                    }}
-                    onCancel={() => setShowSchedulingPrompt(false)}
-                    type="success"
-                />
-
-                {showSchedulingForm && (
-                    <AgendamentoForm
-                        onClose={() => setShowSchedulingForm(false)}
-                        onSave={handleSaveScheduling}
-                        initialData={initialSchedulingData}
-                    />
+                    })
                 )}
+            </div>
 
-                <ConfirmDialog isOpen={showDeleteConfirm} title="Excluir Orçamento" message="Tem certeza?" onConfirm={async () => {
-                    await fetch(`/api/orcamentos/${orcamentoToDelete}`, { method: 'DELETE' });
-                    await fetchOrcamentos();
-                    setShowDeleteConfirm(false);
-                }} onCancel={() => setShowDeleteConfirm(false)} type="danger" />
+            {showForm && <OrcamentoForm onClose={() => setShowForm(false)} onSave={handleSave} initialData={selectedOrcamento} />}
 
-                <Toast isOpen={toast.isOpen} title={toast.title} message={toast.message} type={toast.type} onClose={() => setToast({ ...toast, isOpen: false })} />
-            </main>
-        </div>
+            <ConfirmDialog
+                isOpen={showSchedulingPrompt}
+                title="Orçamento Aprovado!"
+                message="Deseja agendar o atendimento para este orçamento agora?"
+                onConfirm={() => {
+                    setShowSchedulingPrompt(false);
+                    setShowSchedulingForm(true);
+                }}
+                onCancel={() => setShowSchedulingPrompt(false)}
+                type="success"
+            />
+
+            {showSchedulingForm && (
+                <AgendamentoForm
+                    onClose={() => setShowSchedulingForm(false)}
+                    onSave={handleSaveScheduling}
+                    initialData={initialSchedulingData}
+                />
+            )}
+
+            <ConfirmDialog isOpen={showDeleteConfirm} title="Excluir Orçamento" message="Tem certeza que deseja remover este orçamento permanentemente?" onConfirm={async () => {
+                await fetch(`/api/orcamentos/${orcamentoToDelete}`, { method: 'DELETE' });
+                await fetchOrcamentos();
+                setShowDeleteConfirm(false);
+                showToast('Excluído', 'Orçamento removido com sucesso.', 'success');
+            }} onCancel={() => setShowDeleteConfirm(false)} type="danger" />
+
+            <Toast isOpen={toast.isOpen} title={toast.title} message={toast.message} type={toast.type} onClose={() => setToast({ ...toast, isOpen: false })} />
+        </main>
     );
 }
